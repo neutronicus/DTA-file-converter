@@ -75,7 +75,7 @@ typedef struct m2_control_struct {
 typedef struct m173_control_struct {
   yajl_gen json_handle;
   FILE* output_handle;
-  short n_samples_per_channel [__AE_NUM_CHANNELS + 1];
+  unsigned short n_samples_per_channel [__AE_NUM_CHANNELS + 1];
 } m173_control;
 
 

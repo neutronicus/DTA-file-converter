@@ -296,7 +296,7 @@ void store_num_samples (void* data, m173_control* c) {
   // Don't care about most of the data in this message
   // Just jump to the ones I care about.
   byte channel_id = *((byte *) data + 8);
-  short num_samples = *(short *) ((byte *) data + 42);
+  unsigned short num_samples = 1024 * (unsigned short) *((byte *) data + 9);
   if (channel_id == 0) {
 	for (int i = 0; i < sizeof (c->n_samples_per_channel); i++)
 	  c->n_samples_per_channel [i] = num_samples;
@@ -332,13 +332,13 @@ void message173_handler_json (void* data, int length, void* additional_data) {
   data = ((byte *) data + 2);
 
   yajl_gen_string (g, (unsigned char *) "Number of Samples", strlen ("Number of Samples"));
-  yajl_gen_integer (g, c->n_samples_per_channel [channel_id]);
+  yajl_gen_integer (g, m173_state->n_samples_per_channel [channel_id]);
 
   short * waveform_sample = (short *) data;
 
   yajl_gen_string (g, (unsigned char *) "Samples", strlen ("Samples"));
   yajl_gen_array_open (g);
-  for (int i = 0; i < c->n_samples_per_channel [channel_id]; i++)
+  for (int i = 0; i < m173_state->n_samples_per_channel [channel_id]; i++)
 	yajl_gen_double (g, (double) waveform_sample [i] * 10.0 / 32768.0);
   yajl_gen_array_close (g);
 
