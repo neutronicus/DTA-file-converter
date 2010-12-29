@@ -313,6 +313,8 @@ void message173_handler_json (void* data, int length, void* additional_data) {
   if (*(byte *)data == 42) {
 	store_num_samples (data, m173_state);
 	return;
+  } else if (*(byte *)data != 1) {
+	return;
   }
 
   data = ((byte *) data) + 1; // Move the pointer
@@ -420,6 +422,7 @@ void message2_handler_json (void* data, int length, void * additional_data) {
 	}
 	yajl_gen_map_close (g);
   }
+  yajl_gen_map_close (g);
 
   const unsigned char * buf;
   unsigned int len;
