@@ -51,7 +51,7 @@ char characteristic_names[][25] = {"Nothing",
  * Each index in the array corresponds to a characteristic ID, and some characteristic
  * IDs require identical processing, so many of the indices point to the same functions.
  *************************************************************************************************************************/
-characteristic_handler chid_handlers [] =
+characteristic_handler_json chid_handlers [] =
   {NULL, // No characteristic of ID zero
    &ushort_to_json, // first four are all unsigned shorts
    &ushort_to_json,
@@ -115,14 +115,14 @@ byte chid_to_length [] =
 
 void json_handlers_init () {
   memset (json_handlers, NULL, sizeof (json_handlers));
-  json_handlers [1] = &message1_handler;
-  json_handlers [2] = &message2_handler;
-  json_handlers [5] = &message5_handler;
-  json_handlers [6] = &message6_handler;
-  json_handlers [42] = &message42_handler;
-  json_handlers [109] = &message109_handler;
-  json_handlers [110] = &message110_handler;
-  json_handlers [173] = &message173_handler;
+  json_handlers [1] = &message1_handler_json;
+  json_handlers [2] = &message2_handler_json;
+  json_handlers [5] = &message5_handler_json;
+  json_handlers [6] = &message6_handler_json;
+  json_handlers [42] = &message42_handler_json;
+  json_handlers [109] = &message109_handler_json;
+  json_handlers [110] = &message110_handler_json;
+  json_handlers [173] = &message173_handler_json;
 }
 
 void json_ctx_init () { memset (json_handlers, NULL, sizeof (json_handlers)); }
@@ -178,7 +178,7 @@ void skip_partial_power (yajl_gen g, void* &data, void* ctx) {
   data = (byte *) data + *(int *) ctx;
 }
 
-void message5_handler(void* data, int length, void* additional_data) {
+void message5_handler_json(void* data, int length, void* additional_data) {
   m1_control* m1_state = (m1_control *) additional_data;
   
   m1_state->num_characteristics = *(byte *) data;
@@ -187,7 +187,7 @@ void message5_handler(void* data, int length, void* additional_data) {
   m1_state->num_parametrics = *( (byte *) data + 1 + m1_state->num_characteristics);
 }
 
-void message6_handler(void* data, int length, void* additional_data) {
+void message6_handler_json(void* data, int length, void* additional_data) {
   m2_control* m2_state = (m2_control *) additional_data;
 
   m2_state->num_characteristics = ((byte *) data)[0];
@@ -198,12 +198,12 @@ void message6_handler(void* data, int length, void* additional_data) {
   memcpy(m2_state->parametrics, (void*) ((byte*) data + 1 + m2_state->num_parametrics + 1), m2_state->num_parametrics);
 }
 
-void message109_handler (void* data, int length, void* additional_data) {
+void message109_handler_json (void* data, int length, void* additional_data) {
   int* num_partial_power_segments = (int*) additional_data;
   *num_partial_power_segments = *(unsigned short *) ((byte *) data + 1); // read a ushort starting at 1 byte offset;
 }
 
-void message110_handler (void* data, int length, void* additional_data) {
+void message110_handler_json (void* data, int length, void* additional_data) {
   m110_data* d = ((m1_control *) additional_data)->parametric_info;
 
   d->num_pids = ((byte *)data) [0];
@@ -211,7 +211,7 @@ void message110_handler (void* data, int length, void* additional_data) {
   memcpy (d->pids, (void *) ((byte *) data + 1), d->num_pids);
 }
 
-void message42_handler (void* data, int length, void* additional_data) {
+void message42_handler_json (void* data, int length, void* additional_data) {
   FILE* f = (FILE *) additional_data;
 
   // After the extra ID byte and the version bytes, there are just
@@ -220,7 +220,7 @@ void message42_handler (void* data, int length, void* additional_data) {
   fseek (f, -length + 3, SEEK_CUR);
 }
 
-void message1_handler(void* data, int length, void* additional_data) {
+void message1_handler_json (void* data, int length, void* additional_data) {
   m1_control* c = (m1_control *) additional_data;
   m110_data* p_info = c->parametric_info;
   yajl_gen g = c->json_handle;
@@ -292,14 +292,19 @@ void message1_handler(void* data, int length, void* additional_data) {
   yajl_gen_clear (g);  
 }
 
-void message173_handler (void* data, int length, void* additional_data) {
+void store_num_samples (void* data, m173_control* c) {
+  byte channel_id = *((byte *) data + 8);
+}
+
+void message173_handler_json (void* data, int length, void* additional_data) {
   m173_control * m173_state = (m173_control *) additional_data;
   // This may or may not be included in the actual message
   // unsigned short waveform_length;
   yajl_gen g = m173_state->json_handle;
 
   // Check sub-ID byte
-  if (*(byte *)data != 1) {
+  if (*(byte *)data == 42) {
+	store_num_samples (data, m173_state);
 	return;
   }
 
@@ -342,7 +347,7 @@ void message173_handler (void* data, int length, void* additional_data) {
   yajl_gen_clear (g);
 }
 
-void message2_handler (void* data, int length, void * additional_data) {
+void message2_handler_json (void* data, int length, void * additional_data) {
   m2_control* c = (m2_control *) additional_data;
   void* data_alias = data;
   yajl_gen g = c->json_handle;
