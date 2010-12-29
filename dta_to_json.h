@@ -6,7 +6,8 @@
 #define __AE_NUM_CHANNELS 32
 
 /*********************************************************************************
- * These functions are valid targets forthe message_handler typedef from dta_parse_skeleton.h
+ * These functions are valid targets for the message_handler typedef from
+ * dta_parse_skeleton.h
  *********************************************************************************/
 
 void message1_handler_json (void*, int, void*);
