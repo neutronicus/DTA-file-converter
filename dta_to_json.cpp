@@ -145,7 +145,7 @@ void tot_to_json (yajl_gen g, void* &data, void* ctx) {
   for (int i=3; i; )
 	v = v * 65536.0 + (double)up[--i];
 
-  yajl_gen_double (g, 3);
+  yajl_gen_double (g, v / 4e6);
   data = (byte *) data + 6;
 }
    
