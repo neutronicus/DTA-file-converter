@@ -26,10 +26,9 @@ int parse_dta_file (message_handler* handlers, void** additional_data, FILE* dta
 	  }
 	}
 
-	free(message_contents);
-
 	if (handlers[id]) {
 	  handlers[id](message_contents, length - 1, additional_data[id]);
 	}
+	free(message_contents);
   }
 }

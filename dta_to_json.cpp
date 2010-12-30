@@ -191,11 +191,16 @@ void message6_handler_json(void* data, int length, void* additional_data) {
   m2_control* m2_state = (m2_control *) additional_data;
 
   m2_state->num_characteristics = ((byte *) data)[0];
-  m2_state->characteristics = (byte *) malloc(m2_state->num_characteristics);
-  memcpy(m2_state->characteristics, (void*) ((byte *) data + 1), m2_state->num_characteristics);
+  if (m2_state->num_characteristics > 0) {
+	m2_state->characteristics = (byte *) malloc(m2_state->num_characteristics);
+	memcpy(m2_state->characteristics, (void*) ((byte *) data + 1), m2_state->num_characteristics);
+  } else { m2_state->characteristics = NULL; }
+  
   m2_state->num_parametrics = *( (byte *) data + 1 + m2_state->num_characteristics);
-  m2_state->parametrics = (byte *) malloc(m2_state->num_parametrics);
-  memcpy(m2_state->parametrics, (void*) ((byte*) data + 1 + m2_state->num_parametrics + 1), m2_state->num_parametrics);
+  if (m2_state->num_parametrics > 0) {
+	m2_state->parametrics = (byte *) malloc(m2_state->num_parametrics);
+	memcpy(m2_state->parametrics, (void*) ((byte*) data + 1 + m2_state->num_parametrics + 1), m2_state->num_parametrics);
+  } else { m2_state->parametrics = NULL; }
 }
 
 void message109_handler_json (void* data, int length, void* additional_data) {
@@ -396,7 +401,7 @@ void message2_handler_json (void* data, int length, void * additional_data) {
 	chars_length += chid_to_length [c->characteristics [i]];
 
   // Compute number of channels
-  unsigned short length_remaining = (byte *) data_alias - (byte *) data;
+  unsigned short length_remaining = length - (int) ((byte *) data_alias - (byte *) data);
   unsigned short n_channels = length_remaining / chars_length; // These _should_ divide evenly
 
   for (int i = 0; i < n_channels; i++) {
@@ -407,20 +412,22 @@ void message2_handler_json (void* data, int length, void * additional_data) {
 	
 	yajl_gen_string (g, (unsigned char *) buf, strlen (buf));
 
-	yajl_gen_map_open (g);
-	for (int j = 0; j < c->num_characteristics; j++) {
-	  // Get the right string from the lookup table
-	  yajl_gen_string (g,
-					   (unsigned char *) characteristic_names [c->characteristics [j]],
-					   strlen (characteristic_names [c->characteristics [j]]));
+	if (c->num_characteristics > 0) {
+	  yajl_gen_map_open (g);
+	  for (int j = 0; j < c->num_characteristics; j++) {
+		// Get the right string from the lookup table
+		yajl_gen_string (g,
+						 (unsigned char *) characteristic_names [c->characteristics [j]],
+						 strlen (characteristic_names [c->characteristics [j]]));
 
-	  // Get the right function from the lookup table; call if not null
-	  if (chid_handlers [c->characteristics [j]])
-		chid_handlers [c->characteristics [j]] (g,
-												data_alias,
-												c->partial_power_segs_p);
-	}
-	yajl_gen_map_close (g);
+		// Get the right function from the lookup table; call if not null
+		if (chid_handlers [c->characteristics [j]])
+		  chid_handlers [c->characteristics [j]] (g,
+												  data_alias,
+												  c->partial_power_segs_p);
+	  }
+	  yajl_gen_map_close (g);
+	} else { yajl_gen_string (g, (unsigned char *) "No Data", strlen ("No Data")); }
   }
   yajl_gen_map_close (g);
 
