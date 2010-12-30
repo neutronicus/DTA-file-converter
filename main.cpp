@@ -1,12 +1,15 @@
 #include <iostream.h>
+#include <unistd.h>
 #include "dta_to_json.h"
 
 int main (int argc, const char * argv []) {
   char * dot_json = "json";
-  char * dest = NULL;
+  char * dest, * dest2, * dest3;
+  dest = dest2 = dest3 = NULL;
   
-  if (! (argc == 2 || argc == 3) ) {
+  if (! (argc == 2 || argc == 3 || argc == 5) ) {
 	cout << "Usage: dta2json <src> <dest>\n\t dta2json <src>" << endl;
+	cout << "    OR dta2json <src> <hit-based> <time-based> <waveform>" << endl;
 	return 0;
   }
 
@@ -17,12 +20,21 @@ int main (int argc, const char * argv []) {
 	memcpy (dest, argv [1], len - 3);
 	memcpy (&dest [len - 3], dot_json, 4);
 	dest [len] = NULL;
+  } else if (argc == 3) {
+	dest = (char *) argv [2];
   } else {
 	dest = (char *) argv [2];
+	dest2 = (char *) argv [3];
+	dest3 = (char *) argv [4];
   }
 
   FILE* dta_file = fopen (argv [1], "rb");
-  FILE* output_file = fopen (dest, "w");
+  FILE* output_file1 = fopen (dest, "w");
+  FILE* output_file2, * output_file3;
+  if (argc == 5) {
+	output_file2 = fopen (dest2, "w");
+	output_file3 = fopen (dest3, "w");
+  } else { output_file2 = output_file3 = output_file1; }
 
   m1_control message1_state;
   m2_control message2_state;
@@ -32,12 +44,22 @@ int main (int argc, const char * argv []) {
 
   yajl_gen_config conf = {1, "    "};
   yajl_gen g = yajl_gen_alloc (&conf, NULL);
+  yajl_gen g2, g3;
+  if (argc == 5) {
+	g2 = yajl_gen_alloc (&conf, NULL);
+	g3 = yajl_gen_alloc (&conf, NULL);
+  } else { g2 = g3 = g; }
 
   yajl_gen_array_open (g);
+  if (argc == 5) { yajl_gen_array_open (g2); yajl_gen_array_open (g3); }
 
   message2_state.partial_power_segs_p = message1_state.partial_power_segs_p = &num_pp_segs;
-  message173_state.json_handle = message2_state.json_handle = message1_state.json_handle = g;
-  message173_state.output_handle = message2_state.output_handle = message1_state.output_handle = output_file;
+  message1_state.json_handle = g;
+  message2_state.json_handle = g2;
+  message173_state.json_handle = g3;
+  message173_state.output_handle = output_file3;
+  message2_state.output_handle = output_file2;
+  message1_state.output_handle = output_file1;
   message1_state.parametric_info = &p_info;
 
   json_ctx_init ();
@@ -60,13 +82,25 @@ int main (int argc, const char * argv []) {
   free (p_info.pids);
 
   yajl_gen_array_close (g);
-
+  if (argc == 5) { yajl_gen_array_close (g2); yajl_gen_array_close (g3); }
+  
   const unsigned char * buf;
   unsigned int len;
   yajl_gen_get_buf (g, &buf, &len);
-  fwrite(buf, 1, len, output_file);
-  yajl_gen_clear(g);
+  fwrite(buf, 1, len, output_file1);
+  yajl_gen_clear (g);
   yajl_gen_free (g);
+  if (argc == 5) {
+	yajl_gen_get_buf (g2, &buf, &len);
+	fwrite(buf, 1, len, output_file2);
+	yajl_gen_clear (g2);
+	yajl_gen_free (g2);
+
+	yajl_gen_get_buf (g3, &buf, &len);
+	fwrite(buf, 1, len, output_file3);
+	yajl_gen_clear (g3);
+	yajl_gen_free (g3);
+  }
 
   cout << "Conversion Complete." << endl;
 
