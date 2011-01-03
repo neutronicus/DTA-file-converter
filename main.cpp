@@ -6,7 +6,7 @@ int main (int argc, const char * argv []) {
   char * dot_json = "json";
   char * dest, * dest2, * dest3;
   dest = dest2 = dest3 = NULL;
-  
+
   if (! (argc == 2 || argc == 3 || argc == 5) ) {
 	cout << "Usage: dta2json <src> <dest>\n\t dta2json <src>" << endl;
 	cout << "    OR dta2json <src> <hit-based> <time-based> <waveform>" << endl;
