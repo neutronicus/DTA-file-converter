@@ -39,7 +39,6 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   mx_ctx [110] = &m1_c;    mx_ctx [128] = &m128_c;
   mx_ctx [173] = &m173_c;
 
-  mexPrintf ("SUP NIGGA");
   parse_dta_file (mx_handlers, mx_ctx, dta_file);
 
   free (m1_c.characteristics);

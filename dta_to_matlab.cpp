@@ -80,7 +80,6 @@ void message5_handler_mx (void* data, int length, void* additional_data) {
   m1_state->num_characteristics = *(byte *) data;
   m1_state->characteristics = (byte *) malloc(m1_state->num_characteristics);
   memcpy(m1_state->characteristics, (byte *) data + 1, m1_state->num_characteristics);
-  for (int i = 0; i < m1_state->num_characteristics; i++) { mexPrintf ("chid %d, %d\n", i, m1_state->characteristics [i]); }
   m1_state->num_parametrics = *( (byte *) data + 1 + m1_state->num_characteristics);
 }
 
@@ -148,8 +147,6 @@ void message42_handler_mx (void* data, int length, void* additional_data) {
 
 void message128_handler_mx (void* data, int length, void* additional_data) {
   mx_m128_control * c = (mx_m128_control *) additional_data;
-  FILE * derp = fopen ("/Users/adamvh/Documents/Programming/dta_tool/working_copy/derp.txt", "w");
-  mexPrintf ("UNGA BUNGA\n");
 
   // Okay, we want to count the message 1's and message 2's, so we know enough
   // to allocate the MATLAB struct.  First save place in the file;
@@ -251,7 +248,6 @@ char ** alloc_field_names (byte* cs, int ncs, int extras, int& ppFlag) {
   for (int i = 0; i < ncs + extras; i++) {
 	ret_val [i] = & storage [25 * i];
 	if ( i >= extras && cs [i - extras] != 22) {
-	  mexPrintf ("sherpa: %s\n", characteristic_names_mx [cs [i - extras]]);
 	  memcpy (ret_val [i - b], characteristic_names_mx [cs [i - extras]], 25);
 	} else if (i >= extras && cs [i - extras] == 22) { b = true; }
   }
@@ -295,7 +291,6 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
 	  b = true;
 	} else {
 	  mxSetFieldByNumber (a, c->index, i + (b ? 3 : 4), mxCreateDoubleScalar (value));
-	  // mexPrintf ("readback attempt: a(%d).%s = %f\n", c->index, mxGetFieldNameByNumber (a, i + (b ? 3 : 4)),* mxGetPr (mxGetFieldByNumber (a, c->index, i + (b ? 3 : 4))));
 	}
   }
 
@@ -323,7 +318,6 @@ void message2_handler_mx (void* data, int length, void* additional_data) {
 	data = (byte *) data + 1;
 	for (int j = 0; j < c->num_characteristics; j++) {
 	  double value = chid_handlers_mx [c->characteristics [j]] (data, c->partial_power_segs_p);
-	  mexPrintf ("value = %f\n", value);
 	  if (c->characteristics [j] != 22)
 		mxSetFieldByNumber (chs, i,
 							c->characteristics [j] > 22
@@ -377,7 +371,6 @@ void mx_store_num_samples (void* data, mx_m173_control* c) {
   // Just jump to the ones I care about.
   byte channel_id = *((byte *) data + 8);
   unsigned short num_samples = 1024 * (unsigned short) *((byte *) data + 9);
-  mexPrintf ("Channel %d needs %d samples\n", channel_id, num_samples);
   if (channel_id == 0) {
 	for (int i = 0; i < sizeof (c->n_samples_per_channel); i++)
 	  c->n_samples_per_channel [i] = num_samples;
@@ -437,6 +430,5 @@ double rms16_to_double (void* &data, void* ctx) {
 
 double skip_partial_power_mx (void* &data, void* ctx) {
   data = (byte *) data + *(int *) ctx;
-  mexPrintf ("HERRO! %d\n", *(int *) ctx);
   return -1;
 }
