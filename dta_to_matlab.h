@@ -9,7 +9,7 @@ typedef struct m1_control_matlab_struct {
   unsigned short num_parametrics;
   m110_data* parametric_info;
   int* partial_power_segs_p;
-  int index;
+  int index [__AE_NUM_CHANNELS + 1];
   mxArray * matlab_array_handle;
 } mx_m1_control;
 
@@ -50,9 +50,11 @@ void message6_handler_mx (void*, int, void*);
 void message24_handler_mx (void*, int, void*);
 void message26_handler_mx (void*, int, void*);
 // For message 42, message42_handler_json works fine here
+void message106_handler_mx (void*, int, void*);
 void message109_handler_mx (void*, int, void*);
 void message110_handler_mx (void*, int, void*);
-// I think it will actually be necessary to process message 128 for the matlab importer
+// Message 128 signals the start of data, so this is when I allocate all of the matlab
+// arrays.
 void message128_handler_mx (void*, int, void*);
 void message173_handler_mx (void*, int, void*);
 

@@ -26,7 +26,8 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
 
   m1_c.partial_power_segs_p = m2_c.partial_power_segs_p = &n_pp_segs;
 
-  m1_c.index = m2_c.index = m173_c.index = 0;
+  m2_c.index = m173_c.index = 0;
+  memset (& m1_c.index [0], 0, (__AE_NUM_CHANNELS + 1) * sizeof (int));
 
   m1_c.parametric_info = & p_info;
 
@@ -36,10 +37,9 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   mx_ctx [5] = &m1_c;      mx_ctx [6] = &m2_c;
   mx_ctx [24] = &m173_c;   mx_ctx [26] = &m173_c;
   mx_ctx [42] = dta_file;  mx_ctx [109] = &n_pp_segs;
-  mx_ctx [110] = &m1_c;    mx_ctx [128] = &m128_c;
-  mx_ctx [173] = &m173_c;
+  mx_ctx [106] = &m2_c;    mx_ctx [110] = &m1_c;
+  mx_ctx [128] = &m128_c;  mx_ctx [173] = &m173_c;
 
-  mexPrintf ("SUP NIGGA");
   parse_dta_file (mx_handlers, mx_ctx, dta_file);
 
   free (m1_c.characteristics);

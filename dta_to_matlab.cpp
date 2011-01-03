@@ -66,6 +66,7 @@ void mx_handlers_init () {
   mx_handlers [24] = &message24_handler_mx;
   mx_handlers [26] = &message26_handler_mx;
   mx_handlers [42] = &message42_handler_json;
+  mx_handlers [106] = &message106_handler_mx;
   mx_handlers [109] = &message109_handler_mx;
   mx_handlers [110] = &message110_handler_mx;
   mx_handlers [128] = &message128_handler_mx;
@@ -122,6 +123,13 @@ void message26_handler_mx (void* data, int length, void* additional_data) {
   } else { c->channel_pdt [channel_id] = pdt; }
 }
 
+void message106_handler_mx (void* data, int length, void* additional_data) {
+  mx_m2_control * c = (mx_m2_control *) additional_data;
+
+  mexPrintf ("%d channels in m106\n", *((byte *) data + 1));
+  c->n_channels = *((byte *) data + 1);
+}
+
 void message109_handler_mx (void* data, int length, void* additional_data) {
   int* num_partial_power_segments = (int*) additional_data;
   *num_partial_power_segments = *(unsigned short *) ((byte *) data + 1); // read a ushort starting at 1 byte offset;
@@ -148,8 +156,6 @@ void message42_handler_mx (void* data, int length, void* additional_data) {
 
 void message128_handler_mx (void* data, int length, void* additional_data) {
   mx_m128_control * c = (mx_m128_control *) additional_data;
-  FILE * derp = fopen ("/Users/adamvh/Documents/Programming/dta_tool/working_copy/derp.txt", "w");
-  mexPrintf ("UNGA BUNGA\n");
 
   // Okay, we want to count the message 1's and message 2's, so we know enough
   // to allocate the MATLAB struct.  First save place in the file;
@@ -159,15 +165,28 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
   unsigned short local_length;
   byte id;
 
-  unsigned int n_hitbased, n_timebased, m2_length;
-  n_hitbased = n_timebased = 0;
+  unsigned int n_channels = c->m2_c->n_channels;
+  mexPrintf ("n_channels %d\n", c->m2_c->n_channels);
+
+  unsigned int n_timebased, m2_length;
+  unsigned int * n_hitbased = (unsigned int *) mxCalloc (n_channels, sizeof (unsigned short));
+  memset (n_hitbased, 0, n_channels * sizeof (unsigned short));
+  n_timebased = 0;
+
   fread (&local_length, 2, 1, c->input_file_handle);
   fread (&id, 1, 1, c->input_file_handle);
   while (! feof (c->input_file_handle) && local_length != 0 ) {
 
 	// Don't bother counting 173 - There's one for every 1
-	if (id == 1)
-	  n_hitbased++;
+	if (id == 1) {
+	  fpos_t m1_anchor;
+	  byte channel_id;
+	  fgetpos (c->input_file_handle, & anchor);
+	  fseek (c->input_file_handle, 7, SEEK_CUR);
+	  fread (&channel_id, 1, 1, c->input_file_handle);
+	  fsetpos (c->input_file_handle, & anchor);
+	  (n_hitbased [channel_id - 1])++;
+	}
 	else if (id == 2) {
 	  n_timebased++;
 	  m2_length = local_length;
@@ -178,7 +197,8 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 	fread (&id, 1, 1, c->input_file_handle);
   }
 
-
+  mxArray   *new_number, *str;
+  double out;
   // Return input file handle to original location
   fsetpos (c->input_file_handle, &anchor);
   
@@ -191,21 +211,48 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
   m1_field_names [2] = "waveform";
   m1_field_names [3] = "parametrics";
 
-  unsigned int n_channels = get_n_channels (c->m2_c, m2_length);
+  int max_hitbased = 0;
+  for (int i = 0; i < n_channels; i++)
+	max_hitbased =
+	  n_hitbased [i] > max_hitbased ? n_hitbased [i] : max_hitbased;
 
+  mexPrintf ("max_hitbased %d\n", max_hitbased);
+
+  str = mxCreateString("Enter extension:  ");
+  mexCallMATLAB(1,&new_number,1,&str,"input");
+  out = mxGetScalar(new_number);
+  mexPrintf("You entered: %.0f ", out);
+  mxDestroyArray(new_number);
+  mxDestroyArray(str);
+  return;  
   // Allocate and initialize hit-based data
   mxArray * hit_based_array =
-	mxCreateStructMatrix (1, (mwSize) n_hitbased, c->m1_c->num_characteristics + 4 - m1_ppflag, (const char **) m1_field_names);
+	mxCreateStructMatrix (n_channels, (mwSize) max_hitbased,
+						  c->m1_c->num_characteristics + 4 - m1_ppflag,
+						  (const char **) m1_field_names);
 
-  for (int i = 0; i < n_hitbased; i++)
-	for (int j = 0; j < c->m1_c->num_characteristics + 3 - m1_ppflag; j++)
-	  mxSetFieldByNumber (hit_based_array, i, j,
-						  j == 2
-						  // Assume all channels sample at same rate for now
-						  ? mxCreateDoubleMatrix (1, c->m173_c->n_samples_per_channel [1], mxREAL)
-						  : j == 3
-						  ? mxCreateDoubleMatrix (1, c->m1_c->parametric_info->num_pids, mxREAL)
-						  : mxCreateDoubleScalar (0.0));
+  mwIndex subs [2];
+  mwSize nsubs = 2;
+
+  str = mxCreateString("Enter extension:  ");
+  mexCallMATLAB(1,&new_number,1,&str,"input");
+  out = mxGetScalar(new_number);
+  mexPrintf("You entered: %.0f ", out);
+  mxDestroyArray(new_number);
+  mxDestroyArray(str);
+  return;
+
+  for (int k = 0; k < n_channels; k++)
+	for (int i = 0; i < n_hitbased [k]; i++) {
+	  subs [0] = k; subs [1] = i;
+	  mwIndex ind = mxCalcSingleSubscript (hit_based_array, nsubs, subs);
+	  for (int j = 0; j < c->m1_c->num_characteristics + 4 - m1_ppflag; j++)
+		mxSetFieldByNumber (hit_based_array, ind, j,
+							j == 2
+							? mxCreateDoubleMatrix (1, c->m173_c->n_samples_per_channel [k + 1], mxREAL)
+							: j == 3
+							? mxCreateDoubleMatrix (1, c->m1_c->parametric_info->num_pids, mxREAL)
+							: mxCreateDoubleScalar (0.0)); }
 
   c->m1_c->matlab_array_handle = hit_based_array;
   c->m173_c->matlab_array_handle = hit_based_array;
@@ -251,7 +298,6 @@ char ** alloc_field_names (byte* cs, int ncs, int extras, int& ppFlag) {
   for (int i = 0; i < ncs + extras; i++) {
 	ret_val [i] = & storage [25 * i];
 	if ( i >= extras && cs [i - extras] != 22) {
-	  mexPrintf ("sherpa: %s\n", characteristic_names_mx [cs [i - extras]]);
 	  memcpy (ret_val [i - b], characteristic_names_mx [cs [i - extras]], 25);
 	} else if (i >= extras && cs [i - extras] == 22) { b = true; }
   }
@@ -282,11 +328,19 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
   mxArray * a = c->matlab_array_handle;
 
   double TOT = tot_to_double (data, NULL);
-  mxSetFieldByNumber (a, c->index, 1, mxCreateDoubleScalar ((double) TOT));
+
+
 
   byte channel_id = *(byte *) data;
+  
+  mwIndex subs [2];   mwSize nsubs = 2;
+  subs [0] = channel_id; subs [1] = c->index [channel_id];
+  mwIndex ind = mxCalcSingleSubscript (a, nsubs, subs);
+  
+  mxSetFieldByNumber (a, ind, 1, mxCreateDoubleScalar ((double) TOT));
+  
   data = ((byte *) data + 1);
-  mxSetFieldByNumber (a, c->index, 0, mxCreateDoubleScalar ((double) channel_id));
+  mxSetFieldByNumber (a, ind, 0, mxCreateDoubleScalar ((double) channel_id));
 
   bool b = false;
   for (int i = 0; i < c->num_characteristics; i++) {
@@ -294,16 +348,16 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
 	if (c->characteristics [i] == 22) {
 	  b = true;
 	} else {
-	  mxSetFieldByNumber (a, c->index, i + (b ? 3 : 4), mxCreateDoubleScalar (value));
+	  mxSetFieldByNumber (a, ind, i + (b ? 3 : 4), mxCreateDoubleScalar (value));
 	  // mexPrintf ("readback attempt: a(%d).%s = %f\n", c->index, mxGetFieldNameByNumber (a, i + (b ? 3 : 4)),* mxGetPr (mxGetFieldByNumber (a, c->index, i + (b ? 3 : 4))));
 	}
   }
 
-  double * mxParametrics = mxGetPr (mxGetField (a, c->index, "parametrics"));
+  double * mxParametrics = mxGetPr (mxGetField (a, ind, "parametrics"));
   set_parametrics (data, c->parametric_info->pids,
 				   c->parametric_info->num_pids, mxParametrics);
 
-  c->index++;
+  c->index [channel_id] ++;
 }
 
 void message2_handler_mx (void* data, int length, void* additional_data) {
