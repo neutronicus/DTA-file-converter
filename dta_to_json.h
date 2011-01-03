@@ -14,6 +14,8 @@ void message1_handler_json (void*, int, void*);
 void message2_handler_json (void*, int, void*);
 void message5_handler_json (void*, int, void*);
 void message6_handler_json (void*, int, void*);
+void message24_handler_json (void*, int, void*);
+void message26_handler_json (void*, int, void*);
 void message42_handler_json (void*, int, void*);
 void message109_handler_json (void*, int, void*);
 void message110_handler_json (void*, int, void*);
@@ -76,7 +78,8 @@ typedef struct m173_control_struct {
   yajl_gen json_handle;
   FILE* output_handle;
   unsigned short n_samples_per_channel [__AE_NUM_CHANNELS + 1];
+  unsigned short channel_pdt [__AE_NUM_CHANNELS + 1];
+  unsigned short channel_hdt [__AE_NUM_CHANNELS + 1];
 } m173_control;
-
 
 #endif

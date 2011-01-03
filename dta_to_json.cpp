@@ -1,6 +1,27 @@
 #include "dta_to_json.h"
-
+/*********************************************************************************
+ * This is an array of function pointers - the targets of the pointers satisfy
+ * the following description:
+ *
+ * Arguments:
+ * 1. A void* pointing to the contents of the message most recently read from the
+ *    the data file.  This is what will be parsed.
+ * 2. An int recording the length of the data.
+ * 3. A void* pointing to arbitrary data that the function may need to do its job.
+ *    Basically, this parameter is used to allow message handlers to access earlier
+ *    data which may be relevant, modify data which may be necessary for a later
+ *    handler, and to pass in file handles and whatever other data a handler may
+ *    need to generate output.
+ *
+ * Note: If the message requires no parsing, the corresponding index in this array
+ * will contain a NULL pointer.
+ *********************************************************************************/
 message_handler json_handlers [256];
+
+/*********************************************************************************
+ * This is an array of things to be passed as the third arguments to each of the
+ * JSON handlers.
+ *********************************************************************************/
 void * json_ctx [256];
 
 /*********************************************************************************
@@ -91,27 +112,26 @@ byte chid_to_length [] =
    2,
    2,
    2,
-   4,
+   4, //5
    1,
    1,
    1,
    1,
-   1,
+   1, // 10
    1,
    4,
    2,
    2,
-   6,
+   6, // 15
    0, // Not quite sure what's going on here
    2,
    2,
    2,
+   4, // 20
    4,
-   2,
    0, // Rember to set this at runtime - id 22
    2,
    2};
-
 
 void json_handlers_init () {
   memset (json_handlers, NULL, sizeof (json_handlers));
@@ -119,6 +139,8 @@ void json_handlers_init () {
   json_handlers [2] = &message2_handler_json;
   json_handlers [5] = &message5_handler_json;
   json_handlers [6] = &message6_handler_json;
+  json_handlers [24] = &message24_handler_json;
+  json_handlers [26] = &message26_handler_json;
   json_handlers [42] = &message42_handler_json;
   json_handlers [109] = &message109_handler_json;
   json_handlers [110] = &message110_handler_json;
@@ -201,6 +223,28 @@ void message6_handler_json(void* data, int length, void* additional_data) {
 	m2_state->parametrics = (byte *) malloc(m2_state->num_parametrics);
 	memcpy(m2_state->parametrics, (void*) ((byte*) data + 1 + m2_state->num_parametrics + 1), m2_state->num_parametrics);
   } else { m2_state->parametrics = NULL; }
+}
+
+void message24_handler_json (void* data, int length, void* additional_data) {
+  m173_control* c = (m173_control *) additional_data;
+
+  byte channel_id = *(byte *) data;
+  unsigned short hdt = *(unsigned short *) ((byte *) data + 1);
+
+  if (channel_id == 0) {
+	for (int i = 1; i < __AE_NUM_CHANNELS + 1; i++) { c->channel_hdt [i] = 2 * hdt; }
+  } else { c->channel_hdt [channel_id] = 2 * hdt; }
+}
+
+void message26_handler_json (void* data, int length, void* additional_data) {
+  m173_control* c = (m173_control *) additional_data;
+
+  byte channel_id = *(byte *) data;
+  unsigned short pdt = *(unsigned short *) ((byte *) data + 1);
+
+  if (channel_id == 0) {
+	for (int i = 1; i < __AE_NUM_CHANNELS + 1; i++) { c->channel_pdt [i] = 2 * pdt; }
+  } else { c->channel_pdt [channel_id] = 2 * pdt; }
 }
 
 void message109_handler_json (void* data, int length, void* additional_data) {

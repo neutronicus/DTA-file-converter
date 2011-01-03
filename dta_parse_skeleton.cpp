@@ -5,7 +5,7 @@ int parse_dta_file (message_handler* handlers, void** additional_data, FILE* dta
   byte length_msb, length_lsb, id;
   void* message_contents;
   size_t bytes_read;
-  
+
   while (! feof(dta_file) ) {
 	fread((void *) &length_lsb, 1, 1, dta_file);
 	fread((void *) &length_msb, 1, 1, dta_file);
