@@ -1,7 +1,7 @@
 #include "dta_parse_skeleton.h"
 
 int parse_dta_file (message_handler* handlers, void** additional_data, FILE* dta_file) {
-  short length;
+  unsigned short length;
   byte length_msb, length_lsb, id;
   void* message_contents;
   size_t bytes_read;

@@ -28,7 +28,7 @@ typedef struct m173_control_matlab_struct {
   unsigned short n_samples_per_channel [__AE_NUM_CHANNELS + 1];
   unsigned short channel_pdt [__AE_NUM_CHANNELS + 1];
   unsigned short channel_hdt [__AE_NUM_CHANNELS + 1];
-  int index;
+  int index [__AE_NUM_CHANNELS + 1];
   mxArray * matlab_array_handle;
 } mx_m173_control;
 

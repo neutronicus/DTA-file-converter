@@ -26,8 +26,9 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
 
   m1_c.partial_power_segs_p = m2_c.partial_power_segs_p = &n_pp_segs;
 
-  m2_c.index = m173_c.index = 0;
+  m2_c.index = 0;
   memset (& m1_c.index [0], 0, (__AE_NUM_CHANNELS + 1) * sizeof (int));
+  memset (& m173_c.index [0], 0, (__AE_NUM_CHANNELS + 1) * sizeof (int));
 
   m1_c.parametric_info = & p_info;
 
