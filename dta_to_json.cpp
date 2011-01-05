@@ -61,7 +61,7 @@ char characteristic_names[][25] = {"Nothing",
  *   1. A handle to a YAJL yajl_gen, used for generating JSON.
  *   2. A pointer into the block of data in the message devoted to AE characteristics.
  *   3. A pointer to arbitrary data that some of these functions may need.
- *      Specifically, skip_partial_power requires a pointer to an integer enumerating
+ *      Specifically, partial_power_to_json requires a pointer to an integer enumerating
  *      how many partial power segments have been defined.  The others do not require
  *      any additional data and can simply be passed NULL.
  *
@@ -95,7 +95,7 @@ characteristic_handler_json chid_handlers [] =
    &ushort_to_json,
    &sig_strength_to_json,
    &abs_energy_to_json,
-   &skip_partial_power,
+   &partial_power_to_json,
    &ushort_to_json,
    &ushort_to_json };
 
@@ -196,7 +196,11 @@ void rms16_to_json (yajl_gen g, void* &data, void* ctx) {
   data = (byte *) data + 2;
 }
 
-void skip_partial_power (yajl_gen g, void* &data, void* ctx) {
+void partial_power_to_json (yajl_gen g, void* &data, void* ctx) {
+  yajl_gen_array_open (g);
+  for (int i = 0; i < *(int *) ctx; i++)
+	yajl_gen_integer (g, ((byte *) data) [i]);
+  yajl_gen_array_close (g);
   data = (byte *) data + *(int *) ctx;
 }
 
@@ -285,18 +289,17 @@ void message1_handler_json (void* data, int length, void* additional_data) {
   tot_to_json (g, data, NULL);
 
   yajl_gen_string (g, (unsigned char *) "Channel Number", strlen ("Channel Number"));
-  yajl_gen_integer (g, ((byte *) data) [6]);
+  yajl_gen_integer (g, *(byte *) data);
 
   void* characteristics_ptr = ((byte *) data + 1);
 
   // See comments for characteristic_names and chid_handlers
   for (int i = 0; i < c->num_characteristics; i++) {
 	// Get the right string from the lookup table
-	if (c->characteristics [i] != 22) {
-	  yajl_gen_string (g,
-					   (unsigned char *) characteristic_names [c->characteristics [i]],
-					   strlen (characteristic_names [c->characteristics [i]]));
-	}
+	yajl_gen_string (g,
+					 (unsigned char *) characteristic_names [c->characteristics [i]],
+					 strlen (characteristic_names [c->characteristics [i]]));
+	
 
 	// Get the right function from the lookup table; call if not null
 	if (chid_handlers [c->characteristics [i]])

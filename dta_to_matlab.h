@@ -69,12 +69,13 @@ double uint_to_double (void* &data, void* ctx);
 double byte_to_double (void* &data, void* ctx);
 double abs_energy_to_double (void* & data, void* ctx);
 double rms16_to_double (void* &data, void* ctx);
-double skip_partial_power_mx (void* &data, void* ctx);
+// It's a long name - but this function is a litte screwy
+double partial_power_to_byte_array_as_double (void* &data, void* ctx);
 
 void mx_ctx_init ();
 void mx_handlers_init ();
 
-char ** alloc_field_names (byte*, int, int, int&);
+char ** alloc_field_names (byte*, int, int);
 unsigned int get_n_channels (mx_m2_control *, unsigned int);
 void set_parametrics (void* & , byte* , unsigned int, double *);
 void mx_store_num_samples (void*, mx_m173_control*);

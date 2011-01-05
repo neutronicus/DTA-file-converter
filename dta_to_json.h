@@ -42,7 +42,7 @@ void tot_to_json (yajl_gen, void* &, void*);
 void rms16_to_json (yajl_gen, void* &, void*);
 void sig_strength_to_json (yajl_gen, void* &, void*);
 void abs_energy_to_json (yajl_gen, void* &, void*);
-void skip_partial_power (yajl_gen, void* &, void*);
+void partial_power_to_json (yajl_gen, void* &, void*);
 
 extern characteristic_handler_json chid_handlers [];
 extern byte chid_to_length [];

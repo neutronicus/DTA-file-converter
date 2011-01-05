@@ -24,7 +24,7 @@ characteristic_handler_mx chid_handlers_mx [] =
    &ushort_to_double,
    &sig_strength_to_double,
    &abs_energy_to_double,
-   &skip_partial_power_mx,
+   &partial_power_to_byte_array_as_double,
    &ushort_to_double,
    &ushort_to_double };
 
@@ -202,9 +202,8 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
   // Return input file handle to original location
   fsetpos (c->input_file_handle, &anchor);
   
-  int m1_ppflag, m2_ppflag;
-  char** m1_field_names = alloc_field_names (c->m1_c->characteristics, c->m1_c->num_characteristics, 4, m1_ppflag);
-  char** m2_chan_field_names = alloc_field_names (c->m2_c->characteristics, c->m2_c->num_characteristics, 0, m2_ppflag);
+  char** m1_field_names = alloc_field_names (c->m1_c->characteristics, c->m1_c->num_characteristics, 4);
+  char** m2_chan_field_names = alloc_field_names (c->m2_c->characteristics, c->m2_c->num_characteristics, 0);
 
   m1_field_names [0] = "channel_id";
   m1_field_names [1] = "tot";
@@ -219,7 +218,7 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
   // Allocate and initialize hit-based data
   mxArray * hit_based_array =
 	mxCreateStructMatrix (n_channels, (mwSize) max_hitbased,
-						  c->m1_c->num_characteristics + 4 - m1_ppflag,
+						  c->m1_c->num_characteristics + 4,
 						  (const char **) m1_field_names);
 
   mwIndex subs [2];
@@ -229,12 +228,14 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 	for (int i = 0; i < n_hitbased [k]; i++) {
 	  subs [0] = k; subs [1] = i;
 	  mwIndex ind = mxCalcSingleSubscript (hit_based_array, nsubs, subs);
-	  for (int j = 0; j < c->m1_c->num_characteristics + 4 - m1_ppflag; j++)
+	  for (int j = 0; j < c->m1_c->num_characteristics + 4; j++)
 		mxSetFieldByNumber (hit_based_array, ind, j,
 							j == 2
 							? mxCreateDoubleMatrix (1, c->m173_c->n_samples_per_channel [k + 1], mxREAL)
 							: j == 3
 							? mxCreateDoubleMatrix (1, c->m1_c->parametric_info->num_pids, mxREAL)
+							: c->m1_c->characteristics [j - 4] == 22
+							? mxCreateDoubleMatrix (1, *c->m1_c->partial_power_segs_p, mxREAL)
 							: mxCreateDoubleScalar (0.0)); }
 
   c->m1_c->matlab_array_handle = hit_based_array;
@@ -257,32 +258,28 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 	mxSetFieldByNumber (time_based_array, i, 1,
 						mxCreateDoubleMatrix (1, c->m2_c->num_parametrics, mxREAL));
 	mxArray * tmp = mxCreateStructMatrix (1, n_channels,
-										  c->m2_c->num_characteristics - m2_ppflag,
+										  c->m2_c->num_characteristics,
 										  (const char **) m2_chan_field_names);
 	for (int j = 0; j < n_channels; j++)
 	  for (int k = 0; k < c->m2_c->num_characteristics; k++)
-		mxSetFieldByNumber (tmp, j, k, mxCreateDoubleScalar (0.0));
+		mxSetFieldByNumber (tmp, j, k,
+							c->m2_c->characteristics [j] == 22
+							? mxCreateDoubleMatrix (1, *c->m2_c->partial_power_segs_p, mxREAL)
+							: mxCreateDoubleScalar (0.0));
 	mxSetFieldByNumber (time_based_array, i, 2, tmp);
   }
   c->m2_c->matlab_array_handle = time_based_array;
 }
 
-char ** alloc_field_names (byte* cs, int ncs, int extras, int& ppFlag) {
-  ppFlag = false;
-  for (int i = 0; i < ncs; i++) { ppFlag |= (cs [i] == 22); }
-  // ppFlag will be true if any of the characteristics are 22
-
-  char* storage = (char *) mxCalloc ((extras + ncs - ppFlag), 25);
-  char** ret_val = (char **) mxCalloc ((extras + ncs - ppFlag), sizeof (char *));
+char ** alloc_field_names (byte* cs, int ncs, int extras) {
+  char* storage = (char *) mxCalloc ((extras + ncs), 25);
+  char** ret_val = (char **) mxCalloc ((extras + ncs), sizeof (char *));
   
   // Copying strings
-  bool b = false;
   for (int i = 0; i < ncs + extras; i++) {
 	ret_val [i] = & storage [25 * i];
-	if ( i >= extras && cs [i - extras] != 22) {
-	  memcpy (ret_val [i - b], characteristic_names_mx [cs [i - extras]], 25);
-	} else if (i >= extras && cs [i - extras] == 22) { b = true; }
-  }
+	if ( i >= extras )
+	  memcpy (ret_val [i], characteristic_names_mx [cs [i - extras]], 25); }
 
   return ret_val;
 }
@@ -310,9 +307,6 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
   mxArray * a = c->matlab_array_handle;
 
   double TOT = tot_to_double (data, NULL);
-
-
-
   byte channel_id = *(byte *) data;
   
   mwIndex subs [2];   mwSize nsubs = 2;
@@ -324,13 +318,17 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
   data = ((byte *) data + 1);
   mxSetFieldByNumber (a, ind, 0, mxCreateDoubleScalar ((double) channel_id));
 
-  bool b = false;
   for (int i = 0; i < c->num_characteristics; i++) {
 	double value = chid_handlers_mx [c->characteristics [i]] (data, c->partial_power_segs_p);
 	if (c->characteristics [i] == 22) {
-	  b = true;
+	  // Yes, I am using value as an array of bytes for the case of the partial powers
+	  mxArray * tmp = mxCreateDoubleMatrix (1, *c->partial_power_segs_p, mxREAL);
+	  double* d = mxGetPr (tmp);
+	  byte* segs = (byte *) &value;
+	  for (int j = 0; j < *c->partial_power_segs_p; j++) d [j] = (double) segs [j];
+	  mxSetFieldByNumber (a, ind, i + 4, tmp);
 	} else {
-	  mxSetFieldByNumber (a, ind, i + (b ? 3 : 4), mxCreateDoubleScalar (value));
+	  mxSetFieldByNumber (a, ind, i + 4, mxCreateDoubleScalar (value));
 	}
   }
 
@@ -358,14 +356,15 @@ void message2_handler_mx (void* data, int length, void* additional_data) {
 	data = (byte *) data + 1;
 	for (int j = 0; j < c->num_characteristics; j++) {
 	  double value = chid_handlers_mx [c->characteristics [j]] (data, c->partial_power_segs_p);
-	  if (c->characteristics [j] != 22)
-		mxSetFieldByNumber (chs, i,
-							c->characteristics [j] > 22
-							? j - 1
-							: j,
-							mxCreateDoubleScalar (value));
-	}
-  }
+	  if (c->characteristics [j] == 22) {
+		// Yes, I am using value as an array of bytes for the case of the partial powers
+		mxArray * tmp = mxCreateDoubleMatrix (1, *c->partial_power_segs_p, mxREAL);
+		double* d = mxGetPr (tmp);
+		byte* segs = (byte *) &value;
+		for (int k = 0; k < *c->partial_power_segs_p; j++) d [k] = (double) segs [k];
+		mxSetFieldByNumber (chs, i, j, tmp); }
+	  else {
+		mxSetFieldByNumber (chs, i, j, mxCreateDoubleScalar (value)); }}}
 
   c->index++;
 }
@@ -474,7 +473,13 @@ double rms16_to_double (void* &data, void* ctx) {
   return result;
 }
 
-double skip_partial_power_mx (void* &data, void* ctx) {
+// Yes, I mean to do this. There will always be few enough partial power
+// segments to fit in a double.  Essentially, I'm using the "double" return
+// value as a a byte array in the caller.  I feel dirty, but I figure it's
+// worth it to maintain the architecture of the code.
+double partial_power_to_byte_array_as_double (void* &data, void* ctx) {
+  double ret_val = 0;
+  memcpy (& ret_val, data, *(int *) ctx);
   data = (byte *) data + *(int *) ctx;
-  return -1;
+  return ret_val;
 }
