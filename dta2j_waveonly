@@ -4,6 +4,6 @@ D2J=/Users/adamvh/Documents/Programming/dta_tool/working_copy/dta2json
 
 for f in $*
 do
-	echo $D2J $f
-	$D2J $f &
+	echo $D2J $f /dev/null /dev/null ${f%.*}-wave.txt
+	$D2J $f /dev/null /dev/null ${f%.*}-wave.txt &
 done
