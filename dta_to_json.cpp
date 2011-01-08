@@ -1,4 +1,6 @@
 #include "dta_to_json.h"
+#include <math.h>
+
 /*********************************************************************************
  * This is an array of function pointers - the targets of the pointers satisfy
  * the following description:
@@ -139,6 +141,7 @@ void json_handlers_init () {
   json_handlers [2] = &message2_handler_json;
   json_handlers [5] = &message5_handler_json;
   json_handlers [6] = &message6_handler_json;
+  json_handlers [23] = &message23_handler_json;
   json_handlers [24] = &message24_handler_json;
   json_handlers [26] = &message26_handler_json;
   json_handlers [42] = &message42_handler_json;
@@ -227,6 +230,15 @@ void message6_handler_json(void* data, int length, void* additional_data) {
 	m2_state->parametrics = (byte *) malloc(m2_state->num_parametrics);
 	memcpy(m2_state->parametrics, (void*) ((byte*) data + 1 + m2_state->num_parametrics + 1), m2_state->num_parametrics);
   } else { m2_state->parametrics = NULL; }
+}
+
+void message23_handler_json (void* data, int length, void* additional_data) {
+  m173_control* c = (m173_control *) additional_data;
+
+  unsigned short channel_id = *(byte *) data;
+  unsigned short gain_db = *((byte *) data + 1);
+
+  c->channel_gain [channel_id] = (int)(pow(10.0, (gain_db / 20.0)) + 0.5);
 }
 
 void message24_handler_json (void* data, int length, void* additional_data) {
@@ -349,21 +361,29 @@ void store_num_samples (void* data, m173_control* c) {
   // Just jump to the ones I care about.
   byte channel_id = *((byte *) data + 8);
   unsigned short num_samples = 1024 * (unsigned short) *((byte *) data + 9);
+  unsigned short srate = *(unsigned short *) ((byte *) data + 13);
+  short tdly = *(short *) ((byte *) data + 19);
+  unsigned short mxin = *(unsigned short *) ((byte *) data + 21);
   if (channel_id == 0) {
-	for (int i = 0; i < sizeof (c->n_samples_per_channel); i++)
+	for (int i = 0; i < sizeof (c->n_samples_per_channel); i++) {
 	  c->n_samples_per_channel [i] = num_samples;
-  } else {
+	  c->channel_srate [i] = srate;
+	  c->channel_tdly [i] = tdly;
+	  c->channel_mxin [i] = mxin; }}
+  else {
 	c->n_samples_per_channel [channel_id] = num_samples;
-  }
+	c->channel_srate [channel_id] = srate;
+	c->channel_tdly [channel_id] = tdly;
+	c->channel_mxin [channel_id] = mxin; }
 }
 
 void message173_handler_json (void* data, int length, void* additional_data) {
-  m173_control * m173_state = (m173_control *) additional_data;
-  yajl_gen g = m173_state->json_handle;
+  m173_control * c = (m173_control *) additional_data;
+  yajl_gen g = c->json_handle;
 
   // Check sub-ID byte
   if (*(byte *)data == 42) {
-	store_num_samples (data, m173_state);
+	store_num_samples (data, c);
 	return;
   } else if (*(byte *)data != 1) {
 	return;
@@ -386,14 +406,28 @@ void message173_handler_json (void* data, int length, void* additional_data) {
   data = ((byte *) data + 2);
 
   yajl_gen_string (g, (unsigned char *) "Number of Samples", strlen ("Number of Samples"));
-  yajl_gen_integer (g, m173_state->n_samples_per_channel [channel_id]);
+  yajl_gen_integer (g, c->n_samples_per_channel [channel_id]);
 
   short * waveform_sample = (short *) data;
 
   yajl_gen_string (g, (unsigned char *) "Samples", strlen ("Samples"));
   yajl_gen_array_open (g);
-  for (int i = 0; i < m173_state->n_samples_per_channel [channel_id]; i++)
-	yajl_gen_double (g, (double) waveform_sample [i] * 10.0 / 32768.0);
+
+  double xmin =
+	c->channel_tdly [channel_id+1] / (1000.0 * c->channel_srate [channel_id+1]);
+  double xmax =
+	((c->channel_tdly [channel_id+1] + c->n_samples_per_channel [channel_id+1]) - 1)
+	/ (1000.0 * c->channel_srate [channel_id+1]);
+  double sc_fac =
+	c->channel_mxin [channel_id] / c->channel_gain [channel_id] / 32768.0;
+  int N = c->n_samples_per_channel [channel_id+1];
+
+  for (int i = 0; i < N; i++) {
+	yajl_gen_array_open (g);
+	yajl_gen_double (g, xmin + (double) i / (N - 1) * (xmax - xmin));
+	yajl_gen_double (g, (double) waveform_sample [i] * sc_fac);
+	yajl_gen_array_close (g); }
+
   yajl_gen_array_close (g);
 
   yajl_gen_map_close (g);
@@ -401,7 +435,7 @@ void message173_handler_json (void* data, int length, void* additional_data) {
   const unsigned char * buf;
   unsigned int len;
   yajl_gen_get_buf (g, &buf, &len);
-  fwrite (buf, 1, len, m173_state->output_handle);
+  fwrite (buf, 1, len, c->output_handle);
   yajl_gen_clear (g);
 }
 

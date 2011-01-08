@@ -32,3 +32,4 @@ dta_to_matlab.o: dta_to_matlab.cpp dta_to_matlab.h dta_parse_skeleton.o dta_to_j
 clean:
 	rm -f *.o
 	rm -f dta2json
+	rm -f *.mex${MEXSUFFIX}

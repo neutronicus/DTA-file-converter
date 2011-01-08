@@ -26,8 +26,12 @@ typedef struct m2_control_matlab_struct {
 
 typedef struct m173_control_matlab_struct {
   unsigned short n_samples_per_channel [__AE_NUM_CHANNELS + 1];
-  unsigned short channel_pdt [__AE_NUM_CHANNELS + 1];
+  unsigned short channel_srate [__AE_NUM_CHANNELS + 1];
+  short channel_tdly [__AE_NUM_CHANNELS + 1]; // This is signed
+  unsigned short channel_mxin [__AE_NUM_CHANNELS + 1];
+  unsigned short channel_gain [__AE_NUM_CHANNELS + 1];
   unsigned short channel_hdt [__AE_NUM_CHANNELS + 1];
+  unsigned short channel_pdt [__AE_NUM_CHANNELS + 1];
   int index [__AE_NUM_CHANNELS + 1];
   mxArray * matlab_array_handle;
 } mx_m173_control;
@@ -38,6 +42,7 @@ typedef struct m128_control_matlab_struct {
   mx_m1_control* m1_c; // Needs to know number of parametrics, AE characteristics, etc.
   mx_m2_control* m2_c; // Ditto
   mx_m173_control* m173_c; // Needs to know number of samples
+  mxArray * x_coordinates;
   FILE* input_file_handle; // Needs the file handle to count the number of 1's, 2's, and 173's
 } mx_m128_control;
 
@@ -47,6 +52,7 @@ void message1_handler_mx (void*, int, void*);
 void message2_handler_mx (void*, int, void*);
 void message5_handler_mx (void*, int, void*);
 void message6_handler_mx (void*, int, void*);
+void message23_handler_mx (void*, int, void*);
 void message24_handler_mx (void*, int, void*);
 void message26_handler_mx (void*, int, void*);
 // For message 42, message42_handler_json works fine here

@@ -16,7 +16,7 @@ function [d_hitbased d_timebased] = import_multiple_dta ( files )
     spmd
         for i=0:floor(n/numlabs)
             if i + labindex <= n
-                [a, b] = import_dta(char(files(i + labindex)));
+                [a, b, x] = import_dta(char(files(i + labindex)));
                 local_hitbased = [local_hitbased a];
                 local_timebased = [local_timebased b];
             end

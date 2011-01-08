@@ -1,5 +1,6 @@
 #include "dta_to_matlab.h"
 #include <sys/stat.h>
+#include <math.h>
 
 characteristic_handler_mx chid_handlers_mx [] =
   {NULL, // No characteristic of ID zero
@@ -63,6 +64,7 @@ void mx_handlers_init () {
   mx_handlers [2] = &message2_handler_mx;
   mx_handlers [5] = &message5_handler_mx;
   mx_handlers [6] = &message6_handler_mx;
+  mx_handlers [23]= &message23_handler_mx;
   mx_handlers [24] = &message24_handler_mx;
   mx_handlers [26] = &message26_handler_mx;
   mx_handlers [42] = &message42_handler_json;
@@ -76,28 +78,37 @@ void mx_handlers_init () {
 void mx_ctx_init () { memset (mx_ctx, NULL, sizeof (mx_ctx)); }
 
 void message5_handler_mx (void* data, int length, void* additional_data) {
-  mx_m1_control* m1_state = (mx_m1_control *) additional_data;
+  mx_m1_control* c = (mx_m1_control *) additional_data;
   
-  m1_state->num_characteristics = *(byte *) data;
-  m1_state->characteristics = (byte *) malloc(m1_state->num_characteristics);
-  memcpy(m1_state->characteristics, (byte *) data + 1, m1_state->num_characteristics);
-  m1_state->num_parametrics = *( (byte *) data + 1 + m1_state->num_characteristics);
+  c->num_characteristics = *(byte *) data;
+  c->characteristics = (byte *) malloc(c->num_characteristics);
+  memcpy(c->characteristics, (byte *) data + 1, c->num_characteristics);
+  c->num_parametrics = *( (byte *) data + 1 + c->num_characteristics);
 }
 
 void message6_handler_mx (void* data, int length, void* additional_data) {
-  mx_m2_control* m2_state = (mx_m2_control *) additional_data;
+  mx_m2_control* c = (mx_m2_control *) additional_data;
   
-  m2_state->num_characteristics = ((byte *) data)[0];
-  if (m2_state->num_characteristics > 0) {
-	m2_state->characteristics = (byte *) malloc(m2_state->num_characteristics);
-	memcpy(m2_state->characteristics, (void*) ((byte *) data + 1), m2_state->num_characteristics);
-  } else { m2_state->characteristics = NULL; }
+  c->num_characteristics = ((byte *) data)[0];
+  if (c->num_characteristics > 0) {
+	c->characteristics = (byte *) malloc(c->num_characteristics);
+	memcpy(c->characteristics, (void*) ((byte *) data + 1), c->num_characteristics);
+  } else { c->characteristics = NULL; }
   
-  m2_state->num_parametrics = *( (byte *) data + 1 + m2_state->num_characteristics);
-  if (m2_state->num_parametrics > 0) {
-	m2_state->parametrics = (byte *) malloc(m2_state->num_parametrics);
-	memcpy(m2_state->parametrics, (void*) ((byte*) data + 1 + m2_state->num_characteristics + 1), m2_state->num_parametrics);
-  } else { m2_state->parametrics = NULL; }
+  c->num_parametrics = *( (byte *) data + 1 + c->num_characteristics);
+  if (c->num_parametrics > 0) {
+	c->parametrics = (byte *) malloc(c->num_parametrics);
+	memcpy(c->parametrics, (void*) ((byte*) data + 1 + c->num_characteristics + 1), c->num_parametrics);
+  } else { c->parametrics = NULL; }
+}
+
+void message23_handler_mx (void* data, int length, void* additional_data) {
+  mx_m173_control* c = (mx_m173_control *) additional_data;
+
+  unsigned short channel_id = *(byte *) data;
+  unsigned short gain_db = *((byte *) data + 1);
+
+  c->channel_gain [channel_id] = (int)(pow(10.0, (gain_db / 20.0)) + 0.5);
 }
 
 void message24_handler_mx (void* data, int length, void* additional_data) {
@@ -269,6 +280,26 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 	mxSetFieldByNumber (time_based_array, i, 2, tmp);
   }
   c->m2_c->matlab_array_handle = time_based_array;
+
+  int max_s = 0;
+  for (int i = 1; i <= n_channels; i++)
+	max_s =
+	  c->m173_c->n_samples_per_channel [i] > max_s
+	  ? c->m173_c->n_samples_per_channel [i]
+	  : max_s;
+  mxArray * x_coordinates =
+	mxCreateDoubleMatrix (n_channels, max_s, mxREAL);
+  double * d = mxGetPr (x_coordinates);
+
+  for (int i = 0; i < n_channels; i++) {
+	double xmin = c->m173_c->channel_tdly [i+1] / (1000.0 * c->m173_c->channel_srate [i+1]);
+	double xmax = ((c->m173_c->channel_tdly [i+1] + c->m173_c->n_samples_per_channel [i+1]) - 1) / (1000.0 * c->m173_c->channel_srate [i+1]);
+	int N = c->m173_c->n_samples_per_channel [i+1];
+	for (int j = 0; j < N; j++)
+	  d [i + n_channels*j] = xmin + (double) j / (N - 1) * (xmax - xmin);
+  }
+
+  c->x_coordinates = x_coordinates;
 }
 
 char ** alloc_field_names (byte* cs, int ncs, int extras) {
@@ -387,11 +418,11 @@ void message173_handler_mx (void* data, int length, void* additional_data) {
 
   mwIndex ind = mxCalcSingleSubscript (c->matlab_array_handle, nsubs, subs);
   double * w = mxGetPr ( mxGetFieldByNumber (c->matlab_array_handle, ind, 2));
-
   short * m_w = (short *) ((byte *) data + 9);
+  double sc_fac = c->channel_mxin [channel_id] / c->channel_gain [channel_id] / 32768.0;
 
   for (int i = 0; i < c->n_samples_per_channel [channel_id]; i++)
-  	w [i] = (double) m_w [i] * 10.0 / 32768.0;
+  	w [i] = (double) m_w [i] * sc_fac;
 
   c->index [channel_id]++;
 }
@@ -416,12 +447,20 @@ void mx_store_num_samples (void* data, mx_m173_control* c) {
   // Just jump to the ones I care about.
   byte channel_id = *((byte *) data + 8);
   unsigned short num_samples = 1024 * (unsigned short) *((byte *) data + 9);
+  unsigned short srate = *(unsigned short *) ((byte *) data + 13);
+  short tdly = *(short *) ((byte *) data + 19);
+  unsigned short mxin = *(unsigned short *) ((byte *) data + 21);
   if (channel_id == 0) {
-	for (int i = 0; i < sizeof (c->n_samples_per_channel); i++)
+	for (int i = 0; i < sizeof (c->n_samples_per_channel); i++) {
 	  c->n_samples_per_channel [i] = num_samples;
-  } else {
+	  c->channel_srate [i] = srate;
+	  c->channel_tdly [i] = tdly;
+	  c->channel_mxin [i] = mxin; }}
+  else {
 	c->n_samples_per_channel [channel_id] = num_samples;
-  }
+	c->channel_srate [channel_id] = srate;
+	c->channel_tdly [channel_id] = tdly;
+	c->channel_mxin [channel_id] = mxin; }
 }
 
 double sig_strength_to_double (void* &data, void* ctx) {

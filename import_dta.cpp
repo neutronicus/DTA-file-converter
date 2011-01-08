@@ -7,9 +7,9 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   FILE * dta_file;
 
   if (! mxIsChar (prhs [0]))
-	mexErrMsgTxt ("Specify a filename in a string");
-  if (nlhs != 2)
-	mexErrMsgTxt ("Specify two values on left-hand-side");
+	mexErrMsgTxt ("Specify a filename in a string\n");
+  if (nlhs != 3)
+	mexErrMsgTxt ("Specify three values on left-hand-side: <hit-based>, <time-based>, <waveform x>\n");
 
   filename = (char *) malloc (1 + mxGetN (prhs [0]));
   mxGetString (prhs [0], filename, 1 + mxGetN (prhs [0]));
@@ -29,6 +29,13 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   m2_c.index = 0;
   memset (& m1_c.index [0], 0, (__AE_NUM_CHANNELS + 1) * sizeof (int));
   memset (& m173_c.index [0], 0, (__AE_NUM_CHANNELS + 1) * sizeof (int));
+  memset (& m173_c.n_samples_per_channel, 0, (__AE_NUM_CHANNELS + 1) * sizeof (unsigned short));
+  memset (& m173_c.channel_tdly, 0, (__AE_NUM_CHANNELS + 1) * sizeof (short));
+  memset (& m173_c.channel_srate, 0, (__AE_NUM_CHANNELS + 1) * sizeof (unsigned short));
+  memset (& m173_c.channel_mxin, 0, (__AE_NUM_CHANNELS + 1) * sizeof (unsigned short));
+  memset (& m173_c.channel_gain, 0, (__AE_NUM_CHANNELS + 1) * sizeof (unsigned short));
+  memset (& m173_c.channel_pdt, 0, (__AE_NUM_CHANNELS + 1) * sizeof (unsigned short));
+  memset (& m173_c.channel_hdt, 0, (__AE_NUM_CHANNELS + 1) * sizeof (unsigned short));
 
   m1_c.parametric_info = & p_info;
 
@@ -40,6 +47,7 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   mx_ctx [42] = dta_file;  mx_ctx [109] = &n_pp_segs;
   mx_ctx [106] = &m2_c;    mx_ctx [110] = &m1_c;
   mx_ctx [128] = &m128_c;  mx_ctx [173] = &m173_c;
+  mx_ctx [23] = &m173_c;
 
   parse_dta_file (mx_handlers, mx_ctx, dta_file);
 
@@ -50,6 +58,7 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
 
   plhs [0] = m1_c.matlab_array_handle;
   plhs [1] = m2_c.matlab_array_handle;
+  plhs [2] = m128_c.x_coordinates;
 
-  return;
-}
+  return; }
+
