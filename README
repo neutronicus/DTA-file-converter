@@ -36,3 +36,38 @@ format.
 
 dta2j_nowave and dta2j_waveonly do the same thing, but respectively omit
 the waveform data and produce only the waveform data.
+
+The shell scripts all invoke the converter as a background process, so
+that all of these batch conversions run in parallel.
+
+--------------------------------------------------------------------------
+
+The matlab extension requires that the file import_dta.mex<SUF>, where
+<SUF> is a platform-dependent suffix, be on the matlab path.  Furthermore,
+in order to build it, all of the MATLAB and MEX-related macros in the
+makefile must be changed to point at the appropriate locations on your
+system.
+
+Once it is built and on the path, it can be invoked at the MATLAB prompt
+or within a script as follows:
+
+[a, b, x] = import_dta ('example.DTA');
+
+a will hold a structure array corresponding the hit-based AE characteristic
+data and the waveform data.  b will hold a structure array corresponding to
+the time-based AE characteristic data and the parametric data.  x will hold
+an n_channels x n_samples matrix consisting of the abscissa for the wave-
+-form data from each channel.
+
+There is also an included m-file that implements a function for importing
+.dta files in parallel.  It is invoked as follows:
+
+[a, b] = import_multiple_dta ({'file1.DTA', 'file2.DTA', ...});
+
+a and b will contain distributed structure arrays with the contents of all
+of the input files after this command is invoked.  If there is enough memory
+on a single machine to hold this array in its entirety, it can be forced
+onto one machine using the parallel computing toolbox function 'gather',
+e.g.
+
+gather(a);
