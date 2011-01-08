@@ -1,0 +1,38 @@
+This project implements the following: a .DTA file to JSON converter,
+and a C++ matlab extension to import .DTA files into matlab as matlab
+arrays.  The .DTA file to JSON converter is a command line application
+that can be used either on its own or via the shell scripts dta2j,
+dta2j3, dta2j_nowave, and dta2j_waveonly.  When used on its own, the
+syntax for invocation is as follows:
+
+dta2json <src>
+dta2json <src> <dest>
+dta2json <src> <hit-dest> <time-dest> <wave-dest>
+
+The first, given a file example.DTA, will produce a file example.json
+The second will name the JSON file whatever is in the <dest> argument
+The third will produce three files, one containing only hit-based data,
+one containing only time-based data, and the last containing only
+waveform data.
+
+This is somewhat cumbersome, because it only works on a single source
+file at a time.  To batch convert several .DTA files, use the included
+shell scripts.
+
+dta2j <files>
+dta2j3 <files>
+dta2j_nowave <files>
+dta2j_waveonly <files>
+
+For each of the files in its argument list, dta2j will invoke dta2json
+with one argument, producing a collection of plain text files with the
+same names as the input files, but the extension changed to .json.
+
+dta2j3 produces three files for each single input file.  If the input
+file is named example.DTA, the outputs will be example-hit.json,
+example-time.json, and example-wave.json.  These three files respect-
+-ively contain hit-based, time-based, and wave-form data in JSON
+format.
+
+dta2j_nowave and dta2j_waveonly do the same thing, but respectively omit
+the waveform data and produce only the waveform data.

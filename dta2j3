@@ -4,6 +4,6 @@ D2J=/Users/adamvh/Documents/Programming/dta_tool/working_copy/dta2json
 
 for f in $*
 do
-	echo $D2J $f ${f%.*}-hit.txt ${f%.*}-time.txt ${f%.*}-wave.txt
-	$D2J $f ${f%.*}-hit.txt ${f%.*}-time.txt ${f%.*}-wave.txt &
+	echo $D2J $f ${f%.*}-hit.json ${f%.*}-time.json ${f%.*}-wave.json
+	$D2J $f ${f%.*}-hit.json ${f%.*}-time.json ${f%.*}-wave.json &
 done
