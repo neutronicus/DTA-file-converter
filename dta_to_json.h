@@ -14,6 +14,7 @@ void message1_handler_json (void*, int, void*);
 void message2_handler_json (void*, int, void*);
 void message5_handler_json (void*, int, void*);
 void message6_handler_json (void*, int, void*);
+void message8_handler_json (void*, int, void*);
 void message23_handler_json (void*, int, void*);
 void message24_handler_json (void*, int, void*);
 void message26_handler_json (void*, int, void*);

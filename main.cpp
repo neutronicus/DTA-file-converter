@@ -69,6 +69,7 @@ int main (int argc, const char * argv []) {
   json_ctx [2] = &message2_state;
   json_ctx [5] = &message1_state;
   json_ctx [6] = &message2_state;
+  json_ctx [8] = dta_file;
   json_ctx [23] = &message173_state;
   json_ctx [24] = &message173_state;
   json_ctx [26] = &message173_state;

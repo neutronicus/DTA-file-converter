@@ -141,6 +141,7 @@ void json_handlers_init () {
   json_handlers [2] = &message2_handler_json;
   json_handlers [5] = &message5_handler_json;
   json_handlers [6] = &message6_handler_json;
+  json_handlers [8] = &message8_handler_json;
   json_handlers [23] = &message23_handler_json;
   json_handlers [24] = &message24_handler_json;
   json_handlers [26] = &message26_handler_json;
@@ -230,6 +231,19 @@ void message6_handler_json(void* data, int length, void* additional_data) {
 	m2_state->parametrics = (byte *) malloc(m2_state->num_parametrics);
 	memcpy(m2_state->parametrics, (void*) ((byte*) data + 1 + m2_state->num_parametrics + 1), m2_state->num_parametrics);
   } else { m2_state->parametrics = NULL; }
+}
+
+void message8_handler_json (void* data, int length, void* additional_data) {
+  FILE* f = (FILE *)additional_data;
+
+  long int pos = ftell (f);
+  // Was this message read from the beginning of the file?
+  if (pos == (length + 3)) {
+	// If so, it contains many other messages.
+	// Move the file pointer back to where the other messages start.
+	fseek (f, -length + 8,SEEK_CUR);
+  }
+  // Otherwise, do nothing.
 }
 
 void message23_handler_json (void* data, int length, void* additional_data) {
