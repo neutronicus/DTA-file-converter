@@ -39,6 +39,7 @@ int main (int argc, const char * argv []) {
   m1_control message1_state;
   m2_control message2_state;
   m173_control message173_state;
+  m211_control message211_state;
   m110_data p_info;
   int num_pp_segs;
 
@@ -57,6 +58,7 @@ int main (int argc, const char * argv []) {
   message1_state.json_handle = g;
   message2_state.json_handle = g2;
   message173_state.json_handle = g3;
+  message211_state.json_handle = g;
   message173_state.output_handle = output_file3;
   message2_state.output_handle = output_file2;
   message1_state.output_handle = output_file1;
@@ -77,6 +79,7 @@ int main (int argc, const char * argv []) {
   json_ctx [109] = &num_pp_segs;
   json_ctx [110] = &message1_state;
   json_ctx [173] = &message173_state;
+  json_ctx [211] = &message211_state;
 
   parse_dta_file (json_handlers, json_ctx, dta_file);
 

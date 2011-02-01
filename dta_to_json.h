@@ -1,7 +1,7 @@
 #ifndef __DTA_TO_JSON_H
 #define __DTA_TO_JSON_H
 #include "dta_parse_skeleton.h"
-#include <yajl/yajl_gen.h>
+#include "api/yajl_gen.h"
 
 #define __AE_NUM_CHANNELS 32
 
@@ -22,6 +22,7 @@ void message42_handler_json (void*, int, void*);
 void message109_handler_json (void*, int, void*);
 void message110_handler_json (void*, int, void*);
 void message173_handler_json (void*, int, void*);
+void message211_handler_json (void*, int, void*);
 
 extern message_handler json_handlers [256];
 void json_handlers_init ();
@@ -87,5 +88,9 @@ typedef struct m173_control_struct {
   unsigned short channel_pdt [__AE_NUM_CHANNELS + 1];
   unsigned short channel_hdt [__AE_NUM_CHANNELS + 1];
 } m173_control;
+
+typedef struct m211_control_struct {
+  yajl_gen json_handle;
+} m211_control;
 
 #endif

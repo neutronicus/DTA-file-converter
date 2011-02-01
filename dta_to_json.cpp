@@ -149,6 +149,7 @@ void json_handlers_init () {
   json_handlers [109] = &message109_handler_json;
   json_handlers [110] = &message110_handler_json;
   json_handlers [173] = &message173_handler_json;
+  json_handlers [211] = &message211_handler_json;
 }
 
 void json_ctx_init () { memset (json_handlers, NULL, sizeof (json_handlers)); }
@@ -531,4 +532,14 @@ void message2_handler_json (void* data, int length, void * additional_data) {
   yajl_gen_get_buf (g, &buf, &len);
   fwrite (buf, 1, len, c->output_handle);
   yajl_gen_clear (g);
+}
+
+void message211_handler_json (void* data, int length, void* additional_data) {
+  m211_control * c = (m211_control *) additional_data;
+  yajl_gen g = c->json_handle;
+
+  yajl_gen_map_open (g);
+  yajl_gen_string (g, (const unsigned char *) "TIME MARK", strlen ("TIME MARK"));
+  tot_to_json (g, data, NULL);
+  yajl_gen_map_close (g);
 }

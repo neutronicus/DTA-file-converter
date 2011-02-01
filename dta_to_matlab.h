@@ -36,12 +36,18 @@ typedef struct m173_control_matlab_struct {
   mxArray * matlab_array_handle;
 } mx_m173_control;
 
+typedef struct m211_control_matlab_struct {
+  mxArray * matlab_array_handle;
+  unsigned short index;
+} mx_m211_control;
+
 // Message 128 indicates the start of actual data and the end of setup
 // Might as well allocate MATLAB arrays here.
 typedef struct m128_control_matlab_struct {
   mx_m1_control* m1_c; // Needs to know number of parametrics, AE characteristics, etc.
   mx_m2_control* m2_c; // Ditto
   mx_m173_control* m173_c; // Needs to know number of samples
+  mx_m211_control* m211_c;
   mxArray * x_coordinates;
   FILE* input_file_handle; // Needs the file handle to count the number of 1's, 2's, and 173's
 } mx_m128_control;
@@ -63,6 +69,7 @@ void message110_handler_mx (void*, int, void*);
 // arrays.
 void message128_handler_mx (void*, int, void*);
 void message173_handler_mx (void*, int, void*);
+void message211_handler_mx (void*, int, void*);
 
 extern message_handler mx_handlers [256];
 extern void * mx_ctx [256];

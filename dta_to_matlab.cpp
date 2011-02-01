@@ -64,6 +64,7 @@ void mx_handlers_init () {
   mx_handlers [2] = &message2_handler_mx;
   mx_handlers [5] = &message5_handler_mx;
   mx_handlers [6] = &message6_handler_mx;
+  mx_handlers [8] = &message8_handler_json;
   mx_handlers [23]= &message23_handler_mx;
   mx_handlers [24] = &message24_handler_mx;
   mx_handlers [26] = &message26_handler_mx;
@@ -73,6 +74,7 @@ void mx_handlers_init () {
   mx_handlers [110] = &message110_handler_mx;
   mx_handlers [128] = &message128_handler_mx;
   mx_handlers [173] = &message173_handler_mx;
+  mx_handlers [211] = &message211_handler_mx;
 }
 
 void mx_ctx_init () { memset (mx_ctx, NULL, sizeof (mx_ctx)); }
@@ -176,10 +178,10 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 
   unsigned int n_channels = c->m2_c->n_channels;
 
-  unsigned int n_timebased, m2_length;
+  unsigned int n_timebased, m2_length, n_marks;
   unsigned int * n_hitbased = (unsigned int *) mxCalloc (n_channels, sizeof (unsigned int));
   memset (n_hitbased, 0, n_channels * sizeof (unsigned int));
-  n_timebased = 0;
+  n_timebased = n_marks = 0;
 
   struct stat st;
   fstat (fileno (c->input_file_handle), &st);
@@ -202,6 +204,9 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 	else if (id == 2) {
 	  n_timebased++;
 	  m2_length = local_length;
+	}
+	else if (id == 211) {
+	  n_marks++;
 	}
 
 	if ((long int) local_length - 1 + ftell (c->input_file_handle) >= st.st_size) break;
@@ -300,6 +305,8 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
   }
 
   c->x_coordinates = x_coordinates;
+
+  c->m211_c->matlab_array_handle = mxCreateDoubleMatrix (1, n_marks, mxREAL);
 }
 
 char ** alloc_field_names (byte* cs, int ncs, int extras) {
@@ -425,6 +432,13 @@ void message173_handler_mx (void* data, int length, void* additional_data) {
   	w [i] = (double) m_w [i] * sc_fac;
 
   c->index [channel_id]++;
+}
+
+void message211_handler_mx (void* data, int length, void* additional_data) {
+  mx_m211_control * c = (mx_m211_control *) additional_data;
+
+  double* d = mxGetPr (c->matlab_array_handle);
+  d [c->index++] = tot_to_double (data, NULL);
 }
 
 void set_parametrics (void* &data, byte* ps, unsigned int nps, double * mxParametrics) {
