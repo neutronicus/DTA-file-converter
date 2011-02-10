@@ -58,10 +58,11 @@ char characteristic_names_mx [][25] = {"Nothing",
 									   "freq_centroid",
 									   "freq_peak"};
 
-void mx_handlers_init () {
+void mx_handlers_init (bool process_hit_based, bool process_time_based,
+					   bool process_waveform, bool process_time_marks) {
   memset (mx_handlers, NULL, sizeof (mx_handlers));
-  mx_handlers [1] = &message1_handler_mx;
-  mx_handlers [2] = &message2_handler_mx;
+  mx_handlers [1] = process_hit_based ? &message1_handler_mx : NULL;
+  mx_handlers [2] = process_time_based ? &message2_handler_mx : NULL;
   mx_handlers [5] = &message5_handler_mx;
   mx_handlers [6] = &message6_handler_mx;
   mx_handlers [8] = &message8_handler_json;
@@ -73,8 +74,8 @@ void mx_handlers_init () {
   mx_handlers [109] = &message109_handler_mx;
   mx_handlers [110] = &message110_handler_mx;
   mx_handlers [128] = &message128_handler_mx;
-  mx_handlers [173] = &message173_handler_mx;
-  mx_handlers [211] = &message211_handler_mx;
+  mx_handlers [173] = process_waveform ? &message173_handler_mx : NULL;
+  mx_handlers [211] = process_time_marks ? &message211_handler_mx : NULL;
 }
 
 void mx_ctx_init () { memset (mx_ctx, NULL, sizeof (mx_ctx)); }

@@ -2,17 +2,34 @@
 #include <string.h>
 #include "dta_to_matlab.h"
 
+// This function takes a cell array of variable names, and a logical array corresponding to
+// to which pieces of data are requested.
+
 void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []) {
   char * filename;
   FILE * dta_file;
 
-  if (! mxIsChar (prhs [0]))
-	mexErrMsgTxt ("Specify a filename in a string\n");
-  if (nlhs != 4 && nlhs != 0)
-	mexErrMsgTxt ("Specify four values on left-hand-side: <hit-based>, <time-based>, <waveform x>, <marks>\n");
-
   filename = (char *) malloc (1 + mxGetN (prhs [0]));
   mxGetString (prhs [0], filename, 1 + mxGetN (prhs [0]));
+
+  unsigned short total_names_length = 0;
+  for (unsigned short i = 0; i < 4; i++)
+	total_names_length += mxGetN (mxGetCell (prhs [1], i));
+
+  char * var_names_storage = (char *) malloc (4 + total_names_length);
+  char * var_names [4];
+
+  var_names [0] = var_names_storage;
+  var_names [1] = var_names [0] + 1 + mxGetN (mxGetCell (prhs [1], 0));
+  var_names [2] = var_names [1] + 1 + mxGetN (mxGetCell (prhs [1], 1));
+  var_names [3] = var_names [2] + 1 + mxGetN (mxGetCell (prhs [1], 2));
+
+  for (unsigned short i=0; i < 4; i++) {
+	mxArray* the_var_name = mxGetCell (prhs [1], i);
+	mxGetString (the_var_name, var_names [i], 1 + mxGetN (the_var_name));
+  }
+
+  mxLogical* options = mxGetLogicals (prhs [2]);
 
   dta_file = fopen (filename, "rb");
   if (! dta_file) mexErrMsgTxt ("Error opening file.");
@@ -42,7 +59,8 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
 
   m1_c.parametric_info = & p_info;
 
-  mx_ctx_init ();          mx_handlers_init (true, true, true, true);
+  mx_ctx_init ();
+  mx_handlers_init (options [0], options [1], options [2], options [3]);
 
   mx_ctx [1] = &m1_c;      mx_ctx [2] = &m2_c;
   mx_ctx [5] = &m1_c;      mx_ctx [6] = &m2_c;
@@ -61,15 +79,10 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   free (m2_c.parametrics);
   free (p_info.pids);
 
-  if (nlhs == 4) {
-	plhs [0] = m1_c.matlab_array_handle;
-	plhs [1] = m2_c.matlab_array_handle;
-	plhs [2] = m128_c.x_coordinates;
-	plhs [3] = m211_c.matlab_array_handle; }
-  else {
-	mexPutVariable ("base", HIT_BASED_ARRAY_NAME, m1_c.matlab_array_handle);
-	mexPutVariable ("base", TIME_BASED_ARRAY_NAME, m2_c.matlab_array_handle);
-	mexPutVariable ("base", WAVEFORM_ABSCISSA_NAME, m128_c.x_coordinates);
-	mexPutVariable ("base", TIME_MARKS_NAME, m211_c.matlab_array_handle); }
+ 
+  if (options [0]) mexPutVariable ("base", var_names [0], m1_c.matlab_array_handle);
+  if (options [1]) mexPutVariable ("base", var_names [1], m2_c.matlab_array_handle);
+  if (options [2]) mexPutVariable ("base", var_names [2], m128_c.x_coordinates);
+  if (options [3]) mexPutVariable ("base", var_names [3], m211_c.matlab_array_handle); 
 
   return; }

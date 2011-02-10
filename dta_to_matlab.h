@@ -3,6 +3,19 @@
 #include "dta_to_json.h"
 #include <mex.h>
 
+#ifndef HIT_BASED_ARRAY_NAME
+#define HIT_BASED_ARRAY_NAME "a"
+#endif
+#ifndef TIME_BASED_ARRAY_NAME
+#define TIME_BASED_ARRAY_NAME "b"
+#endif
+#ifndef WAVEFORM_ABSCISSA_NAME
+#define WAVEFORM_ABSCISSA_NAME "x"
+#endif
+#ifndef TIME_MARKS_NAME
+#define TIME_MARKS_NAME "m"
+#endif
+
 typedef struct m1_control_matlab_struct {
   byte num_characteristics;
   byte* characteristics;
@@ -86,7 +99,7 @@ double rms16_to_double (void* &data, void* ctx);
 double partial_power_to_byte_array_as_double (void* &data, void* ctx);
 
 void mx_ctx_init ();
-void mx_handlers_init ();
+void mx_handlers_init (bool, bool, bool, bool);
 
 char ** alloc_field_names (byte*, int, int);
 unsigned int get_n_channels (mx_m2_control *, unsigned int);
