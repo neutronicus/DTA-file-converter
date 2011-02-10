@@ -16,9 +16,6 @@ all: dta2json import_dta.mex${MEXSUFFIX} import_dta_private.mex${MEXSUFFIX}
 dta2json: dta_parse_skeleton.o dta_to_json.o yajl_alloc.o yajl_buf.o yajl_encode.o yajl_gen.o yajl_lex.o yajl_parser.o yajl.o main.o
 	${CXX} ${CXXFLAGS} main.o dta_to_json.o dta_parse_skeleton.o yajl_alloc.o yajl_buf.o yajl_encode.o yajl_gen.o yajl_lex.o yajl_parser.o yajl.o ${LIBS} -o dta2json
 
-import_dta.mex${MEXSUFFIX}: import_dta.cpp dta_to_matlab.o
-	${MEX} ${MEXFLAGS} dta_parse_skeleton.o dta_to_json.o dta_to_matlab.o yajl_alloc.o yajl_buf.o yajl_encode.o yajl_gen.o yajl_lex.o yajl_parser.o yajl.o import_dta.cpp -output import_dta
-
 import_dta_private.mex${MEXSUFFIX}: import_dta_private.cpp dta_to_matlab.o
 	${MEX} ${MEXFLAGS} dta_parse_skeleton.o dta_to_json.o dta_to_matlab.o yajl_alloc.o yajl_buf.o yajl_encode.o yajl_gen.o yajl_lex.o yajl_parser.o yajl.o import_dta_private.cpp -output import_dta_private
 

@@ -80,9 +80,9 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   free (p_info.pids);
 
  
-  if (options [0]) mexPutVariable ("base", var_names [0], m1_c.matlab_array_handle);
-  if (options [1]) mexPutVariable ("base", var_names [1], m2_c.matlab_array_handle);
-  if (options [2]) mexPutVariable ("base", var_names [2], m128_c.x_coordinates);
-  if (options [3]) mexPutVariable ("base", var_names [3], m211_c.matlab_array_handle); 
+  if (options [0]) mexPutVariable ("caller", var_names [0], m1_c.matlab_array_handle);
+  if (options [1]) mexPutVariable ("caller", var_names [1], m2_c.matlab_array_handle);
+  if (options [2]) mexPutVariable ("caller", var_names [2], m128_c.x_coordinates);
+  if (options [3]) mexPutVariable ("caller", var_names [3], m211_c.matlab_array_handle); 
 
   return; }
