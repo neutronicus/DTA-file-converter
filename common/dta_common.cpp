@@ -1,4 +1,4 @@
-#include "common.h"
+#include "dta_common.h"
 
 /*********************************************************************************
  * This array contains the length of each AE characteristic.
