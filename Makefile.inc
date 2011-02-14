@@ -1,0 +1,15 @@
+CC                  = gcc
+CXX					= g++
+AR                  = ar
+ARFLAGS             = 
+RANLIB              = ranlib
+MEX					= /Applications/MATLAB_R2010b.app/bin/mex
+CXXFLAGS			= -g -arch x86_64
+CFLAGS              = ${CXXFLAGS}
+#LIBS				= -lyajl
+MATLAB_INCLUDE_DIR	= -I/Applications/MATLAB_R2010b.app/extern/include
+MATLAB_LIB_DIR		= -L/Applications/MATLAB_R2010b.app/bin/maci64
+YAJL_INCLUDE_DIR    = -I${abspath ./yajl_build}
+COMMON_INCLUDE_DIR  = -I${abspath ./common}
+MEXFLAGS			= -v -g
+MEXSUFFIX           = maci64

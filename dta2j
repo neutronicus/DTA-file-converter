@@ -1,9 +1,0 @@
-#!/bin/bash
-
-D2J=/Users/adamvh/Documents/Programming/dta_tool/working_copy/dta2json
-
-for f in $*
-do
-	echo $D2J $f
-	time $D2J $f > ${f%.*}.log &
-done
