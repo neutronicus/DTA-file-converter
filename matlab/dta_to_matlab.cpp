@@ -379,34 +379,34 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
 
 
 void message2_handler_mx (void* data, int length, void* additional_data) {
-																		  mx_m2_control * c = (mx_m2_control *) additional_data;
-																		  mxArray * a = c->matlab_array_handle;
+  mx_m2_control * c = (mx_m2_control *) additional_data;
+  mxArray * a = c->matlab_array_handle;
 
-																		  double TOT = tot_to_double (data, NULL);
-																		  mxSetFieldByNumber (a, c->index, 0, mxCreateDoubleScalar (TOT));
+  double TOT = tot_to_double (data, NULL);
+  mxSetFieldByNumber (a, c->index, 0, mxCreateDoubleScalar (TOT));
 
-																		  double * mxParametrics = mxGetPr (mxGetFieldByNumber (a, c->index, 1));
-																		  set_parametrics (data, c->parametrics, c->num_parametrics, mxParametrics);
+  double * mxParametrics = mxGetPr (mxGetFieldByNumber (a, c->index, 1));
+  set_parametrics (data, c->parametrics, c->num_parametrics, mxParametrics);
 
-																		  unsigned int n_channels = c->n_channels;
+  unsigned int n_channels = c->n_channels;
 
-																		  mxArray * chs = mxGetFieldByNumber (a, c->index, 2);
-																		  for (int i = 0; i < n_channels; i++) {
-																												data = (byte *) data + 1;
-																												for (int j = 0; j < c->num_characteristics; j++) {
-																																								  double value = chid_handlers_mx [c->characteristics [j]] (data, c->partial_power_segs_p);
-																																								  if (c->characteristics [j] == 22) {
-								// Yes, I am using value as an array of bytes for the case of the partial powers
-																																																	 mxArray * tmp = mxCreateDoubleMatrix (1, *c->partial_power_segs_p, mxREAL);
-																																																	 double* d = mxGetPr (tmp);
-																																																	 byte* segs = (byte *) &value;
-																																																	 for (int k = 0; k < *c->partial_power_segs_p; j++) d [k] = (double) segs [k];
-																																																	 mxSetFieldByNumber (chs, i, j, tmp); }
-																																								  else {
-																																										mxSetFieldByNumber (chs, i, j, mxCreateDoubleScalar (value)); }}}
+  mxArray * chs = mxGetFieldByNumber (a, c->index, 2);
+  for (int i = 0; i < n_channels; i++) {
+	data = (byte *) data + 1;
+	for (int j = 0; j < c->num_characteristics; j++) {
+	  double value = chid_handlers_mx [c->characteristics [j]] (data, c->partial_power_segs_p);
+	  if (c->characteristics [j] == 22) {
+		// Yes, I am using value as an array of bytes for the case of the partial powers
+		mxArray * tmp = mxCreateDoubleMatrix (1, *c->partial_power_segs_p, mxREAL);
+		double* d = mxGetPr (tmp);
+		byte* segs = (byte *) &value;
+		for (int k = 0; k < *c->partial_power_segs_p; j++) d [k] = (double) segs [k];
+		mxSetFieldByNumber (chs, i, j, tmp); }
+	  else {
+		mxSetFieldByNumber (chs, i, j, mxCreateDoubleScalar (value)); }}}
 
-																		  c->index++;
-																		  }
+  c->index++;
+}
 
 void message173_handler_mx (void* data, int length, void* additional_data) {
   mx_m173_control * c = (mx_m173_control *) additional_data;
@@ -421,8 +421,8 @@ void message173_handler_mx (void* data, int length, void* additional_data) {
   
   byte channel_id = *( (byte *) data + 7);
 
-  mwIndex subs [2];         mwSize nsubs = 2;
-  subs [0] = channel_id - 1;    subs [1] = c->index [channel_id];
+  mwIndex subs [2];                    mwSize nsubs = 2;
+  subs [0] = c->index [channel_id];    subs [1] = channel_id - 1;
 
   mwIndex ind = mxCalcSingleSubscript (c->matlab_array_handle, nsubs, subs);
   double * w = mxGetPr ( mxGetFieldByNumber (c->matlab_array_handle, ind, 2));
