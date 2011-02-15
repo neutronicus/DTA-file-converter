@@ -68,7 +68,7 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   mx_ctx [24] = &m173_c;   mx_ctx [26] = &m173_c;
   mx_ctx [42] = dta_file;  mx_ctx [109] = &n_pp_segs;
   mx_ctx [106] = &m2_c;    mx_ctx [110] = &m1_c;
-  mx_ctx [128] = &m128_c;  mx_ctx [173] = &m173_c;
+  mx_ctx [11] = &m128_c;  mx_ctx [173] = &m173_c;
   mx_ctx [211] = &m211_c;
 
 

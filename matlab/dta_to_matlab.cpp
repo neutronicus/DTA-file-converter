@@ -73,7 +73,7 @@ void mx_handlers_init (bool process_hit_based, bool process_time_based,
   mx_handlers [106] = &message106_handler_mx;
   mx_handlers [109] = &message109_handler_mx;
   mx_handlers [110] = &message110_handler_mx;
-  mx_handlers [128] = &message128_handler_mx;
+  mx_handlers [11] = &message128_handler_mx;
   mx_handlers [173] = process_waveform ? &message173_handler_mx : NULL;
   mx_handlers [211] = process_time_marks ? &message211_handler_mx : NULL;
 }
@@ -244,7 +244,7 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
   for (int k = 0; k < n_channels; k++)
 	for (int i = 0; i < n_hitbased [k]; i++) {
 	  subs [0] = i; subs [1] = k;
-	  mwIndex ind = mxCalcSingleSubscript (hit_based_array, nsubs, subs);
+	  mwIndex ind = mxCalcSingleSubscript (hit_based_array, nsubs, & subs [0]);
 	  for (int j = 0; j < c->m1_c->num_characteristics + 4; j++)
 		mxSetFieldByNumber (hit_based_array, ind, j,
 							j == 2
@@ -350,7 +350,7 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
   
   mwIndex subs [2];   mwSize nsubs = 2;
   subs [0] = c->index [channel_id]; subs [1] = channel_id - 1;
-  mwIndex ind = mxCalcSingleSubscript (a, nsubs, subs);
+  mwIndex ind = mxCalcSingleSubscript (a, nsubs, & subs [0]);
   
   mxSetFieldByNumber (a, ind, 1, mxCreateDoubleScalar ((double) TOT));
   
@@ -424,7 +424,7 @@ void message173_handler_mx (void* data, int length, void* additional_data) {
   mwIndex subs [2];                    mwSize nsubs = 2;
   subs [0] = c->index [channel_id];    subs [1] = channel_id - 1;
 
-  mwIndex ind = mxCalcSingleSubscript (c->matlab_array_handle, nsubs, subs);
+  mwIndex ind = mxCalcSingleSubscript (c->matlab_array_handle, nsubs, & subs [0]);
   double * w = mxGetPr ( mxGetFieldByNumber (c->matlab_array_handle, ind, 2));
   short * m_w = (short *) ((byte *) data + 9);
   double sc_fac = c->channel_mxin [channel_id] / c->channel_gain [channel_id] / 32768.0;
