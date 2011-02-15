@@ -1,6 +1,8 @@
-#include <iostream.h>
-#include <unistd.h>
+#include <iostream>
+//#include <unistd.h>
 #include "dta_to_json.h"
+
+using namespace std;
 
 int main (int argc, const char * argv []) {
   char * dot_json = "json";

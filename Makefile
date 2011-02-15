@@ -10,24 +10,16 @@ YAJL_OBJS = \
 	yajl_build/yajl_parser.o \
 	yajl_build/yajl.o
 
-all: json/dta2json matlab/import_dta_private.mex${MEXSUFFIX}
+all: bin/dta2json bin/import_dta_private.mex${MEXSUFFIX}
 
-json/dta2json: common_obj_lib.a yajl_obj_lib.a json/main.o json/dta_to_json.o
-	${CXX} ${CXXFLAGS} $^ -o $@
+bin/dta2json: ${COMMON_OBJS} ${YAJL_OBJS} json/main.o json/dta_to_json.o
+	${CXX} $^ ${CXXFLAGS} -o $@
 
-matlab/import_dta_private.mex${MEXSUFFIX}: common_obj_lib.a matlab/dta_to_matlab.o matlab/import_dta_private.cpp
-	${MEX} ${MEXFLAGS} ${COMMON_INCLUDE_DIR} ${MATLAB_INCLUDE_DIR} $^ -output matlab/import_dta_private
+bin/import_dta_private.mex${MEXSUFFIX}: ${COMMON_OBJS} matlab/dta_to_matlab.o matlab/import_dta_private.cpp
+	${MEX} ${MEXFLAGS} ${COMMON_INCLUDE_DIR} ${MATLAB_INCLUDE_DIR} $^ -output bin/import_dta_private
 
 matlab/dta_to_matlab.o: matlab/dta_to_matlab.cpp
 	${CXX} ${CXXFLAGS} ${COMMON_INCLUDE_DIR} ${MATLAB_INCLUDE_DIR} -c $< -o $@
-
-common_obj_lib.a: ${COMMON_OBJS}
-	${AR} ${ARFLAGS} rv common_obj_lib.a $^
-	${RANLIB} common_obj_lib.a
-
-yajl_obj_lib.a: ${YAJL_OBJS}
-	${AR} ${ARFLAGS} rv yajl_obj_lib.a $^
-	${RANLIB} yajl_obj_lib.a
 
 yajl_build/%.o: yajl_build/%.c
 	${CC} ${CFLAGS} -c $< -o $@

@@ -234,7 +234,7 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 
   // Allocate and initialize hit-based data
   mxArray * hit_based_array =
-	mxCreateStructMatrix (n_channels, (mwSize) max_hitbased,
+	mxCreateStructMatrix ((mwSize)max_hitbased, n_channels,
 						  c->m1_c->num_characteristics + 4,
 						  (const char **) m1_field_names);
 
@@ -243,7 +243,7 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 
   for (int k = 0; k < n_channels; k++)
 	for (int i = 0; i < n_hitbased [k]; i++) {
-	  subs [0] = k; subs [1] = i;
+	  subs [0] = i; subs [1] = k;
 	  mwIndex ind = mxCalcSingleSubscript (hit_based_array, nsubs, subs);
 	  for (int j = 0; j < c->m1_c->num_characteristics + 4; j++)
 		mxSetFieldByNumber (hit_based_array, ind, j,
@@ -349,7 +349,7 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
   byte channel_id = *(byte *) data;
   
   mwIndex subs [2];   mwSize nsubs = 2;
-  subs [0] = channel_id - 1; subs [1] = c->index [channel_id];
+  subs [0] = c->index [channel_id]; subs [1] = channel_id - 1;
   mwIndex ind = mxCalcSingleSubscript (a, nsubs, subs);
   
   mxSetFieldByNumber (a, ind, 1, mxCreateDoubleScalar ((double) TOT));
@@ -375,38 +375,38 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
   set_parametrics (data, c->parametric_info->pids,
 				   c->parametric_info->num_pids, mxParametrics);
 
-  c->index [channel_id] ++;
-}
+  c->index [channel_id] ++;}
+
 
 void message2_handler_mx (void* data, int length, void* additional_data) {
-  mx_m2_control * c = (mx_m2_control *) additional_data;
-  mxArray * a = c->matlab_array_handle;
+																		  mx_m2_control * c = (mx_m2_control *) additional_data;
+																		  mxArray * a = c->matlab_array_handle;
 
-  double TOT = tot_to_double (data, NULL);
-  mxSetFieldByNumber (a, c->index, 0, mxCreateDoubleScalar (TOT));
+																		  double TOT = tot_to_double (data, NULL);
+																		  mxSetFieldByNumber (a, c->index, 0, mxCreateDoubleScalar (TOT));
 
-  double * mxParametrics = mxGetPr (mxGetFieldByNumber (a, c->index, 1));
-  set_parametrics (data, c->parametrics, c->num_parametrics, mxParametrics);
+																		  double * mxParametrics = mxGetPr (mxGetFieldByNumber (a, c->index, 1));
+																		  set_parametrics (data, c->parametrics, c->num_parametrics, mxParametrics);
 
-  unsigned int n_channels = c->n_channels;
+																		  unsigned int n_channels = c->n_channels;
 
-  mxArray * chs = mxGetFieldByNumber (a, c->index, 2);
-  for (int i = 0; i < n_channels; i++) {
-	data = (byte *) data + 1;
-	for (int j = 0; j < c->num_characteristics; j++) {
-	  double value = chid_handlers_mx [c->characteristics [j]] (data, c->partial_power_segs_p);
-	  if (c->characteristics [j] == 22) {
-		// Yes, I am using value as an array of bytes for the case of the partial powers
-		mxArray * tmp = mxCreateDoubleMatrix (1, *c->partial_power_segs_p, mxREAL);
-		double* d = mxGetPr (tmp);
-		byte* segs = (byte *) &value;
-		for (int k = 0; k < *c->partial_power_segs_p; j++) d [k] = (double) segs [k];
-		mxSetFieldByNumber (chs, i, j, tmp); }
-	  else {
-		mxSetFieldByNumber (chs, i, j, mxCreateDoubleScalar (value)); }}}
+																		  mxArray * chs = mxGetFieldByNumber (a, c->index, 2);
+																		  for (int i = 0; i < n_channels; i++) {
+																												data = (byte *) data + 1;
+																												for (int j = 0; j < c->num_characteristics; j++) {
+																																								  double value = chid_handlers_mx [c->characteristics [j]] (data, c->partial_power_segs_p);
+																																								  if (c->characteristics [j] == 22) {
+								// Yes, I am using value as an array of bytes for the case of the partial powers
+																																																	 mxArray * tmp = mxCreateDoubleMatrix (1, *c->partial_power_segs_p, mxREAL);
+																																																	 double* d = mxGetPr (tmp);
+																																																	 byte* segs = (byte *) &value;
+																																																	 for (int k = 0; k < *c->partial_power_segs_p; j++) d [k] = (double) segs [k];
+																																																	 mxSetFieldByNumber (chs, i, j, tmp); }
+																																								  else {
+																																										mxSetFieldByNumber (chs, i, j, mxCreateDoubleScalar (value)); }}}
 
-  c->index++;
-}
+																		  c->index++;
+																		  }
 
 void message173_handler_mx (void* data, int length, void* additional_data) {
   mx_m173_control * c = (mx_m173_control *) additional_data;
