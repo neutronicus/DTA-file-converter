@@ -248,7 +248,9 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 	  for (int j = 0; j < c->m1_c->num_characteristics + 4; j++)
 		mxSetFieldByNumber (hit_based_array, ind, j,
 							j == 2
-							? mxCreateDoubleMatrix (1, c->m173_c->n_samples_per_channel [k + 1], mxREAL)
+							? (c->options [2]
+							   ? mxCreateDoubleMatrix (1, c->m173_c->n_samples_per_channel [k + 1], mxREAL)
+							   : mxCreateString ("unused"))
 							: j == 3
 							? mxCreateDoubleMatrix (1, c->m1_c->parametric_info->num_pids, mxREAL)
 							: c->m1_c->characteristics [j - 4] == 22

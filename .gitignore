@@ -6,3 +6,6 @@ herp*
 derp*
 shazbot*
 shizzle*
+*.a
+bgrep*
+Makefile.inc

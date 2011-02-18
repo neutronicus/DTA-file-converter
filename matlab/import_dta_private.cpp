@@ -12,6 +12,9 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   filename = (char *) malloc (1 + mxGetN (prhs [0]));
   mxGetString (prhs [0], filename, 1 + mxGetN (prhs [0]));
 
+  char * ws = (char *) malloc (1 + mxGetN (prhs [3]));
+  mxGetString (prhs [3], ws, 1 + mxGetN (prhs [3]));
+
   unsigned short total_names_length = 0;
   for (unsigned short i = 0; i < 4; i++)
 	total_names_length += mxGetN (mxGetCell (prhs [1], i));
@@ -42,6 +45,7 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   m128_c.m1_c = & m1_c;      m128_c.m2_c = & m2_c;
   m128_c.m173_c = & m173_c;  m128_c.m211_c = & m211_c;
   m128_c.input_file_handle = dta_file;
+  m128_c.options = options;
 
   m1_c.partial_power_segs_p = m2_c.partial_power_segs_p = &n_pp_segs;
 
@@ -79,10 +83,9 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   free (m2_c.parametrics);
   free (p_info.pids);
 
- 
-  if (options [0]) mexPutVariable ("caller", var_names [0], m1_c.matlab_array_handle);
-  if (options [1]) mexPutVariable ("caller", var_names [1], m2_c.matlab_array_handle);
-  if (options [2]) mexPutVariable ("caller", var_names [2], m128_c.x_coordinates);
-  if (options [3]) mexPutVariable ("caller", var_names [3], m211_c.matlab_array_handle); 
+  if (options [0]) mexPutVariable (ws, var_names [0], m1_c.matlab_array_handle);
+  if (options [1]) mexPutVariable (ws, var_names [1], m2_c.matlab_array_handle);
+  if (options [2]) mexPutVariable (ws, var_names [2], m128_c.x_coordinates);
+  if (options [3]) mexPutVariable (ws, var_names [3], m211_c.matlab_array_handle); 
 
   return; }

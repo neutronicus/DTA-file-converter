@@ -61,6 +61,11 @@ set(handles.time_based_checkbox, 'Value', 1);
 set(handles.waveform_checkbox, 'Value', 1);
 set(handles.time_mark_checkbox, 'Value', 1);
 
+handles.hit_based_option = 1;
+handles.time_based_option = 1;
+handles.waveform_option = 1;
+handles.time_mark_option = 1;
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -85,7 +90,8 @@ function hit_based_checkbox_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of hit_based_checkbox
-toggle_checkbox(hObject, eventdata, handles);
+handles.hit_based_option = get (hObject, 'Value');
+guidata (hObject, handles);
 
 % --- Executes on button press in time_based_checkbox.
 function time_based_checkbox_Callback(hObject, eventdata, handles)
@@ -94,7 +100,8 @@ function time_based_checkbox_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of time_based_checkbox
-toggle_checkbox(hObject, eventdata, handles);
+handles.time_based_option = get (hObject, 'Value');
+guidata (hObject, handles);
 
 
 % --- Executes on button press in waveform_checkbox.
@@ -104,7 +111,8 @@ function waveform_checkbox_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of waveform_checkbox
-toggle_checkbox(hObject, eventdata, handles);
+handles.waveform_option = get (hObject, 'Value');
+guidata (hObject, handles);
 
 % --- Executes on button press in time_mark_checkbox.
 function time_mark_checkbox_Callback(hObject, eventdata, handles)
@@ -113,8 +121,8 @@ function time_mark_checkbox_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of time_mark_checkbox
-toggle_checkbox(hObject, eventdata, handles);
-
+handles.time_mark_option = get (hObject, 'Value');
+guidata (hObject, handles);
 
 function hit_based_var_edit_Callback(hObject, eventdata, handles)
 % hObject    handle to hit_based_var_edit (see GCBO)
@@ -123,7 +131,7 @@ function hit_based_var_edit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of hit_based_var_edit as text
 %        str2double(get(hObject,'String')) returns contents of hit_based_var_edit as a double
-hit_based_var_name = get(hObject, 'String');
+handles.hit_based_var_name = get(hObject, 'String');
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -148,7 +156,7 @@ function time_based_var_edit_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of time_based_var_edit as text
 %        str2double(get(hObject,'String')) returns contents of
 %        time_based_var_edit as a double
-time_based_var_name = get(hObject, 'String');
+handles.time_based_var_name = get(hObject, 'String');
 guidata(hObject, handles);
 
 
@@ -173,7 +181,7 @@ function waveform_var_edit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of waveform_var_edit as text
 %        str2double(get(hObject,'String')) returns contents of waveform_var_edit as a double
-waveform_var_name = 'derp'
+handles.waveform_var_name = get (hObject, 'String');
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -197,7 +205,7 @@ function time_marks_var_edit_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of time_marks_var_edit as text
 %        str2double(get(hObject,'String')) returns contents of time_marks_var_edit as a double
-time_marks_var_name = get(hObject, 'String');
+handles.time_marks_var_name = get(hObject, 'String');
 guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -219,8 +227,24 @@ function file_browse_button_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[file_name file_path filter_index] = uigetfile('*.DTA')
-set(handles.dta_file_edit, 'String', [file_path file_name]);
+[file_name file_path filter_index] = uigetfile('*.DTA', 'MultiSelect', ...
+                                               'on');
+
+handles.file_name = file_name;
+handles.file_path = file_path;
+if iscell (file_name)
+  for n=1:length (file_name) 
+    if n < length (file_name)
+      file_name{i} = [file_path file_name(i) ', '];
+    else
+      file_name{i} = [file_path file_name (i)];
+    end
+  end
+  set (handle.dta_file_edit, [file_name]);
+else
+  set (handles.dta_file_edit, 'String', [file_path file_name]);
+end
+
 guidata(hObject, handles);
 
 
@@ -255,25 +279,24 @@ function import_button_Callback(hObject, eventdata, handles)
 
 %close(handles.figure1);
 varargout{1} = handles.output;
-disp (get(handles.dta_file_edit, 'String'));
-disp({get(handles.hit_based_var_edit, 'String')
-      get(handles.time_based_var_edit, 'String')
-      get(handles.waveform_var_edit, 'String')
-      get(handles.time_marks_var_edit, 'String')});
-disp([get(handles.hit_based_checkbox, 'Value')
-      get(handles.time_based_checkbox, 'Value')
-      get(handles.waveform_checkbox, 'Value')
-      get(handles.time_mark_checkbox, 'Value')]);
 
-import_dta_private(get(handles.dta_file_edit, 'String'),...
-                   {get(handles.hit_based_var_edit, 'String')
-                    get(handles.time_based_var_edit, 'String')
-                    get(handles.waveform_var_edit, 'String')
-                    get(handles.time_marks_var_edit, 'String')},...
-                   logical([get(handles.hit_based_checkbox, 'Value')
-                    get(handles.time_based_checkbox, 'Value')
-                    get(handles.waveform_checkbox, 'Value')
-                    get(handles.time_mark_checkbox, 'Value')]));
+if ischar (handles.file_name)
+  import_dta_private(get(handles.dta_file_edit, 'String'),...
+                     {handles.hit_based_var_name
+                      handles.time_based_var_name
+                      handles.waveform_var_name
+                      handles.time_marks_var_edit},...
+                     logical([handles.hit_based_option
+                      handles.time_based_option
+                      handles.waveform_option
+                      handles.time_mark_option]),...
+                     'base');
+elseif iscell (handles.file_name)
+  % Pass it off to parallel computing toolbox if there are multiple files
+  [a, b] =  import_multiple_dta (file_name);
+  assignin ('base', 'a', a);
+  assignin ('base', 'b', b);
+end
 
 guidata(hObject, handles);
 
@@ -284,10 +307,3 @@ function cancel_button_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 close all;
-
-
-function toggle_checkbox(hObject, eventdata, handles)
-
-cb_status = get(hObject, 'Value');
-set(hObject, 'Value', cb_status);
-guidata(hObject, handles);
