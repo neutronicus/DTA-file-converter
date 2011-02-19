@@ -61,7 +61,6 @@ typedef struct m128_control_matlab_struct {
   mx_m2_control* m2_c; // Ditto
   mx_m173_control* m173_c; // Needs to know number of samples
   mx_m211_control* m211_c;
-  mxArray * x_coordinates;
   mxLogical* options;
   FILE* input_file_handle; // Needs the file handle to count the number of 1's, 2's, and 173's
 } mx_m128_control;

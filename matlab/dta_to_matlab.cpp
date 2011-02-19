@@ -219,43 +219,38 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
   // Return input file handle to original location
   fsetpos (c->input_file_handle, &anchor);
   
-  char** m1_field_names = alloc_field_names (c->m1_c->characteristics, c->m1_c->num_characteristics, 4);
+  char** m1_field_names = alloc_field_names (c->m1_c->characteristics, c->m1_c->num_characteristics, 5);
   char** m2_chan_field_names = alloc_field_names (c->m2_c->characteristics, c->m2_c->num_characteristics, 0);
 
   m1_field_names [0] = "channel_id";
   m1_field_names [1] = "tot";
-  m1_field_names [2] = "waveform";
-  m1_field_names [3] = "parametrics";
-
-  int max_hitbased = 0;
-  for (int i = 0; i < n_channels; i++)
-	max_hitbased =
-	  n_hitbased [i] > max_hitbased ? n_hitbased [i] : max_hitbased;
+  m1_field_names [2] = "x";
+  m1_field_names [3] = "waveform";
+  m1_field_names [4] = "parametrics";
 
   // Allocate and initialize hit-based data
   mxArray * hit_based_array =
-	mxCreateStructMatrix ((mwSize)max_hitbased, n_channels,
-						  c->m1_c->num_characteristics + 4,
+	mxCreateStructMatrix (1, n_channels,
+						  c->m1_c->num_characteristics + 5,
 						  (const char **) m1_field_names);
 
-  mwIndex subs [2];
-  mwSize nsubs = 2;
 
-  for (int k = 0; k < n_channels; k++)
-	for (int i = 0; i < n_hitbased [k]; i++) {
-	  subs [0] = i; subs [1] = k;
-	  mwIndex ind = mxCalcSingleSubscript (hit_based_array, nsubs, & subs [0]);
-	  for (int j = 0; j < c->m1_c->num_characteristics + 4; j++)
-		mxSetFieldByNumber (hit_based_array, ind, j,
-							j == 2
-							? (c->options [2]
-							   ? mxCreateDoubleMatrix (1, c->m173_c->n_samples_per_channel [k + 1], mxREAL)
-							   : mxCreateString ("unused"))
-							: j == 3
-							? mxCreateDoubleMatrix (1, c->m1_c->parametric_info->num_pids, mxREAL)
-							: c->m1_c->characteristics [j - 4] == 22
-							? mxCreateDoubleMatrix (1, *c->m1_c->partial_power_segs_p, mxREAL)
-							: mxCreateDoubleScalar (0.0)); }
+  for (int k = 0; k < n_channels; k++) {
+	for (int j = 0; j < c->m1_c->num_characteristics + 5; j++)
+	  mxSetFieldByNumber (hit_based_array, k, j,
+						  j == 2
+						  ? (c->options [2]
+							 ? mxCreateDoubleMatrix (c->m173_c->n_samples_per_channel [k + 1], 1, mxREAL)
+							 : mxCreateString ("unused"))
+						  : j == 3
+						  ? (c->options [2]
+							 ? mxCreateDoubleMatrix (c->m173_c->n_samples_per_channel [k + 1], n_hitbased [k], mxREAL)
+							 : mxCreateString ("unused"))
+						  : j == 4
+						  ? mxCreateDoubleMatrix (c->m1_c->parametric_info->num_pids, n_hitbased [k], mxREAL)
+						  : c->m1_c->characteristics [j - 5] == 22
+						  ? mxCreateDoubleMatrix (*c->m1_c->partial_power_segs_p, n_hitbased [k], mxREAL)
+						  : mxCreateDoubleMatrix (1, n_hitbased [k], mxREAL)); }
 
   c->m1_c->matlab_array_handle = hit_based_array;
   c->m173_c->matlab_array_handle = hit_based_array;
@@ -289,25 +284,18 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
   }
   c->m2_c->matlab_array_handle = time_based_array;
 
-  int max_s = 0;
-  for (int i = 1; i <= n_channels; i++)
-	max_s =
-	  c->m173_c->n_samples_per_channel [i] > max_s
-	  ? c->m173_c->n_samples_per_channel [i]
-	  : max_s;
-  mxArray * x_coordinates =
-	mxCreateDoubleMatrix (n_channels, max_s, mxREAL);
-  double * d = mxGetPr (x_coordinates);
-
-  for (int i = 0; i < n_channels; i++) {
-	double xmin = c->m173_c->channel_tdly [i+1] / (1000.0 * c->m173_c->channel_srate [i+1]);
-	double xmax = ((c->m173_c->channel_tdly [i+1] + c->m173_c->n_samples_per_channel [i+1]) - 1) / (1000.0 * c->m173_c->channel_srate [i+1]);
-	int N = c->m173_c->n_samples_per_channel [i+1];
-	for (int j = 0; j < N; j++)
-	  d [i + n_channels*j] = xmin + (double) j / (N - 1) * (xmax - xmin);
+  if (c->options [2]) {
+	for (int i = 0; i < n_channels; i++) {
+	  double * d = mxGetPr (mxGetFieldByNumber (hit_based_array, i, 2));
+	  double xmin = c->m173_c->channel_tdly [i+1]
+		/ (1000.0 * c->m173_c->channel_srate [i+1]);
+	  double xmax = ((c->m173_c->channel_tdly [i+1] + c->m173_c->n_samples_per_channel [i+1]) - 1)
+		/ (1000.0 * c->m173_c->channel_srate [i+1]);
+	  int N = c->m173_c->n_samples_per_channel [i+1];
+	  for (int j = 0; j < N; j++)
+		d [j] = xmin + (double) j / (N - 1) * (xmax - xmin);
+	}
   }
-
-  c->x_coordinates = x_coordinates;
 
   c->m211_c->matlab_array_handle = mxCreateDoubleMatrix (1, n_marks, mxREAL);
 }
@@ -346,34 +334,32 @@ unsigned int get_n_channels (mx_m2_control* m2_c, unsigned int m2_length) {
 void message1_handler_mx (void* data, int length, void* additional_data) {
   mx_m1_control * c = (mx_m1_control *) additional_data;
   mxArray * a = c->matlab_array_handle;
+  double* d;
 
   double TOT = tot_to_double (data, NULL);
   byte channel_id = *(byte *) data;
-  
-  mwIndex subs [2];   mwSize nsubs = 2;
-  subs [0] = c->index [channel_id]; subs [1] = channel_id - 1;
-  mwIndex ind = mxCalcSingleSubscript (a, nsubs, & subs [0]);
-  
-  mxSetFieldByNumber (a, ind, 1, mxCreateDoubleScalar ((double) TOT));
-  
-  data = ((byte *) data + 1);
-  mxSetFieldByNumber (a, ind, 0, mxCreateDoubleScalar ((double) channel_id));
 
+  *(mxGetPr (mxGetFieldByNumber (a, channel_id - 1, 0/*"channel_id"*/)) + c->index [channel_id]) = channel_id;
+  *(mxGetPr (mxGetFieldByNumber (a, channel_id - 1, 1/*"tot"*/)) + c->index [channel_id]) = TOT;
+    
+  data = ((byte *) data + 1);
+  
   for (int i = 0; i < c->num_characteristics; i++) {
 	double value = chid_handlers_mx [c->characteristics [i]] (data, c->partial_power_segs_p);
 	if (c->characteristics [i] == 22) {
-	  // Yes, I am using value as an array of bytes for the case of the partial powers
-	  mxArray * tmp = mxCreateDoubleMatrix (1, *c->partial_power_segs_p, mxREAL);
-	  double* d = mxGetPr (tmp);
+	  double* d = mxGetPr (mxGetFieldByNumber (a, channel_id - 1, i + 5));
+	  // Yes, I am using a double as an array of bytes for the case of the partial powers
 	  byte* segs = (byte *) &value;
-	  for (int j = 0; j < *c->partial_power_segs_p; j++) d [j] = (double) segs [j];
-	  mxSetFieldByNumber (a, ind, i + 4, tmp);
+	  long int offset = *c->partial_power_segs_p * c->index [channel_id];
+	  for (int j = 0; j < *c->partial_power_segs_p; j++) d [offset + j] = (double) segs [j];
 	} else {
-	  mxSetFieldByNumber (a, ind, i + 4, mxCreateDoubleScalar (value));
+	  *(mxGetPr (mxGetFieldByNumber (a, channel_id - 1, i + 5)) + c->index [channel_id]) = value;
 	}
   }
 
-  double * mxParametrics = mxGetPr (mxGetField (a, ind, "parametrics"));
+  double * mxParametrics = (mxGetPr (mxGetField (a, channel_id, "parametrics"))
+							+
+							c->parametric_info->num_pids * c->index [channel_id]);
   set_parametrics (data, c->parametric_info->pids,
 				   c->parametric_info->num_pids, mxParametrics);
 
@@ -423,16 +409,13 @@ void message173_handler_mx (void* data, int length, void* additional_data) {
   
   byte channel_id = *( (byte *) data + 7);
 
-  mwIndex subs [2];                    mwSize nsubs = 2;
-  subs [0] = c->index [channel_id];    subs [1] = channel_id - 1;
-
-  mwIndex ind = mxCalcSingleSubscript (c->matlab_array_handle, nsubs, & subs [0]);
-  double * w = mxGetPr ( mxGetFieldByNumber (c->matlab_array_handle, ind, 2));
+  long int offset = c->n_samples_per_channel [channel_id] * c->index [channel_id];
+  double * w = mxGetPr ( mxGetFieldByNumber (c->matlab_array_handle, channel_id-1, 3));
   short * m_w = (short *) ((byte *) data + 9);
   double sc_fac = c->channel_mxin [channel_id] / c->channel_gain [channel_id] / 32768.0;
 
   for (int i = 0; i < c->n_samples_per_channel [channel_id]; i++)
-  	w [i] = (double) m_w [i] * sc_fac;
+  	w [i] = (double) m_w [offset + i] * sc_fac;
 
   c->index [channel_id]++;
 }

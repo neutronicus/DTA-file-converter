@@ -16,18 +16,17 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   mxGetString (prhs [3], ws, 1 + mxGetN (prhs [3]));
 
   unsigned short total_names_length = 0;
-  for (unsigned short i = 0; i < 4; i++)
+  for (unsigned short i = 0; i < 3; i++)
 	total_names_length += mxGetN (mxGetCell (prhs [1], i));
 
-  char * var_names_storage = (char *) malloc (4 + total_names_length);
-  char * var_names [4];
+  char * var_names_storage = (char *) malloc (3 + total_names_length);
+  char * var_names [3];
 
   var_names [0] = var_names_storage;
   var_names [1] = var_names [0] + 1 + mxGetN (mxGetCell (prhs [1], 0));
   var_names [2] = var_names [1] + 1 + mxGetN (mxGetCell (prhs [1], 1));
-  var_names [3] = var_names [2] + 1 + mxGetN (mxGetCell (prhs [1], 2));
 
-  for (unsigned short i=0; i < 4; i++) {
+  for (unsigned short i=0; i < 3; i++) {
 	mxArray* the_var_name = mxGetCell (prhs [1], i);
 	mxGetString (the_var_name, var_names [i], 1 + mxGetN (the_var_name));
   }
@@ -85,7 +84,6 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
 
   if (options [0]) mexPutVariable (ws, var_names [0], m1_c.matlab_array_handle);
   if (options [1]) mexPutVariable (ws, var_names [1], m2_c.matlab_array_handle);
-  if (options [2]) mexPutVariable (ws, var_names [2], m128_c.x_coordinates);
-  if (options [3]) mexPutVariable (ws, var_names [3], m211_c.matlab_array_handle); 
+  if (options [3]) mexPutVariable (ws, var_names [2], m211_c.matlab_array_handle); 
 
   return; }
