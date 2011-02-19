@@ -261,27 +261,27 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
   for (int i = 0; i < 3; i++) { m2_field_names [i] = & m2_field_names_storage [25*i]; }
   m2_field_names [0] = "tot";
   m2_field_names [1] = "parametrics";
-  m2_field_names [2] = "channels";
+  m2_field_names [2] = "ae_characteristics";
   
   mxArray * time_based_array =
-	mxCreateStructMatrix ( 1, (mwSize) n_timebased, 3, (const char **) m2_field_names);
+	mxCreateStructMatrix ( 1, 1, 3, (const char **) m2_field_names);
 
-  for (int i = 0; i < n_timebased; i++) {
-	mxSetFieldByNumber (time_based_array, i, 0,
-						mxCreateDoubleScalar (0.0));
-	mxSetFieldByNumber (time_based_array, i, 1,
-						mxCreateDoubleMatrix (1, c->m2_c->num_parametrics, mxREAL));
-	mxArray * tmp = mxCreateStructMatrix (1, n_channels,
-										  c->m2_c->num_characteristics,
-										  (const char **) m2_chan_field_names);
-	for (int j = 0; j < n_channels; j++)
-	  for (int k = 0; k < c->m2_c->num_characteristics; k++)
-		mxSetFieldByNumber (tmp, j, k,
-							c->m2_c->characteristics [j] == 22
-							? mxCreateDoubleMatrix (1, *c->m2_c->partial_power_segs_p, mxREAL)
-							: mxCreateDoubleScalar (0.0));
-	mxSetFieldByNumber (time_based_array, i, 2, tmp);
-  }
+  mxSetFieldByNumber (time_based_array, 0, 0,
+										mxCreateDoubleMatrix (1, n_timebased, mxREAL));
+  mxSetFieldByNumber (time_based_array, 0, 1,
+										mxCreateDoubleMatrix (c->m2_c->num_parametrics, n_timebased, mxREAL));
+  
+  mxArray * tmp = mxCreateStructMatrix (1, n_channels,
+										   c->m2_c->num_characteristics,
+										   (const char **) m2_chan_field_names);
+  for (int j = 0; j < n_channels; j++)
+	for (int k = 0; k < c->m2_c->num_characteristics; k++)
+	  mxSetFieldByNumber (tmp, j, k,
+						  c->m2_c->characteristics [k] == 22
+						  ? mxCreateDoubleMatrix (*c->m2_c->partial_power_segs_p, n_timebased, mxREAL)
+						  : mxCreateDoubleMatrix (1, n_timebased, mxREAL));
+  mxSetFieldByNumber (time_based_array, 0, 2, tmp);
+  
   c->m2_c->matlab_array_handle = time_based_array;
 
   if (c->options [2]) {
@@ -371,28 +371,30 @@ void message2_handler_mx (void* data, int length, void* additional_data) {
   mxArray * a = c->matlab_array_handle;
 
   double TOT = tot_to_double (data, NULL);
-  mxSetFieldByNumber (a, c->index, 0, mxCreateDoubleScalar (TOT));
+  *(mxGetPr (mxGetFieldByNumber (a, 0, 0)) + c->index) = TOT;
 
-  double * mxParametrics = mxGetPr (mxGetFieldByNumber (a, c->index, 1));
+  double * mxParametrics =
+	mxGetPr (mxGetFieldByNumber (a, 0, 1)) + c->num_parametrics * c->index;
   set_parametrics (data, c->parametrics, c->num_parametrics, mxParametrics);
 
   unsigned int n_channels = c->n_channels;
 
-  mxArray * chs = mxGetFieldByNumber (a, c->index, 2);
+  mxArray * chs = mxGetFieldByNumber (a, 0, 2);
   for (int i = 0; i < n_channels; i++) {
 	data = (byte *) data + 1;
 	for (int j = 0; j < c->num_characteristics; j++) {
 	  double value = chid_handlers_mx [c->characteristics [j]] (data, c->partial_power_segs_p);
+	  double* d = mxGetPr (mxGetFieldByNumber (chs, i, j));
 	  if (c->characteristics [j] == 22) {
 		// Yes, I am using value as an array of bytes for the case of the partial powers
-		mxArray * tmp = mxCreateDoubleMatrix (1, *c->partial_power_segs_p, mxREAL);
-		double* d = mxGetPr (tmp);
+		long int offset = c->index * *c->partial_power_segs_p;
 		byte* segs = (byte *) &value;
-		for (int k = 0; k < *c->partial_power_segs_p; j++) d [k] = (double) segs [k];
-		mxSetFieldByNumber (chs, i, j, tmp); }
-	  else {
-		mxSetFieldByNumber (chs, i, j, mxCreateDoubleScalar (value)); }}}
-
+		for (int k = 0; k < *c->partial_power_segs_p; j++) d [offset + k] = (double) segs [k];
+	  } else {
+		d [c->index] = value;
+	  }
+	}
+  }
   c->index++;
 }
 
