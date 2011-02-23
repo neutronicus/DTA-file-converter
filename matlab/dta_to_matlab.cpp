@@ -357,6 +357,7 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
 	}
   }
 
+  printf ("%d\n", channel_id);
   double * mxParametrics = (mxGetPr (mxGetField (a, channel_id, "parametrics"))
 							+
 							c->parametric_info->num_pids * c->index [channel_id]);
@@ -430,16 +431,17 @@ void message211_handler_mx (void* data, int length, void* additional_data) {
 }
 
 void set_parametrics (void* &data, byte* ps, unsigned int nps, double * mxParametrics) {
-  for (int i = 0; i < nps; i++) {
-	byte * holder;
-	data = (byte *) data + 1;
-	holder = (byte *) data;
-	if (ps [i] > 32) {
-	  mxParametrics [i] = holder [0] + 256 * (holder [1] + 256 * holder [2]);
-	  data = (byte *) data + 3;
-	} else {
-	  mxParametrics [i] = ((double) *(short *) data) * 10.0 / 32768.0;
-	  data = (byte *) data + 2;
+  if (mxParametrics) { for (int i = 0; i < nps; i++) {
+	  byte * holder;
+	  data = (byte *) data + 1;
+	  holder = (byte *) data;
+	  if (ps [i] > 32) {
+		mxParametrics [i] = holder [0] + 256 * (holder [1] + 256 * holder [2]);
+		data = (byte *) data + 3;
+	  } else {
+		mxParametrics [i] = ((double) *(short *) data) * 10.0 / 32768.0;
+		data = (byte *) data + 2;
+	  }
 	}
   }
 }
