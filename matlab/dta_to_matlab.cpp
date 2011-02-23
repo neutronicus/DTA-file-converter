@@ -357,8 +357,7 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
 	}
   }
 
-  printf ("%d\n", channel_id);
-  double * mxParametrics = (mxGetPr (mxGetField (a, channel_id, "parametrics"))
+  double * mxParametrics = (mxGetPr (mxGetField (a, channel_id-1, "parametrics"))
 							+
 							c->parametric_info->num_pids * c->index [channel_id]);
   set_parametrics (data, c->parametric_info->pids,
