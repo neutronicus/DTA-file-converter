@@ -1,4 +1,4 @@
-function [a b x m] = import_dta(filename)
+function [a b m] = import_dta(filename)
 
 if nargout == 0
   import_dta_private(filename, {'a' 'b' 'm'}, ...
