@@ -417,7 +417,7 @@ void message173_handler_mx (void* data, int length, void* additional_data) {
   double sc_fac = c->channel_mxin [channel_id] / c->channel_gain [channel_id] / 32768.0;
 
   for (int i = 0; i < c->n_samples_per_channel [channel_id]; i++)
-  	w [i] = (double) m_w [offset + i] * sc_fac;
+  	w [offset + i] = (double) m_w [i] * sc_fac;
 
   c->index [channel_id]++;
 }
