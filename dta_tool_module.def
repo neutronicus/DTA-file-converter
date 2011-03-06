@@ -1,0 +1,2 @@
+LIBRARY	"import_dta_private.mexw32"
+EXPORTS mexFunction
