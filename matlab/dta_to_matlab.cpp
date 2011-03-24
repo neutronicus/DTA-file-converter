@@ -216,6 +216,22 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 	fread (&id, 1, 1, c->input_file_handle);
   }
 
+  unsigned short non_empty_channels = 0;
+
+  for (unsigned short i = 0; i < n_channels; i++)
+	non_empty_channels += n_hitbased [i] > 0;
+
+  memset (c->m173_c->channel_map, 0, (__AE_NUM_CHANNELS + 1)*sizeof (unsigned short));
+  
+  // Map each non-empty channel ID to its location in the output array
+  unsigned short cur_chan_index = 0;
+  for (unsigned short i = 0; i < n_channels; i++)
+	if (n_hitbased [i] > 1)
+	  c->m173_c->channel_map [i + 1] = cur_chan_index++;
+
+  memcpy (c->m1_c->channel_map , c->m173_c->channel_map,
+		  (__AE_NUM_CHANNELS + 1) * sizeof (unsigned short));
+
   // Return input file handle to original location
   fsetpos (c->input_file_handle, &anchor);
   
@@ -230,27 +246,31 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 
   // Allocate and initialize hit-based data
   mxArray * hit_based_array =
-	mxCreateStructMatrix (1, n_channels,
+	mxCreateStructMatrix (1, non_empty_channels,
 						  c->m1_c->num_characteristics + 5,
 						  (const char **) m1_field_names);
 
 
-  for (int k = 0; k < n_channels; k++) {
-	for (int j = 0; j < c->m1_c->num_characteristics + 5; j++)
-	  mxSetFieldByNumber (hit_based_array, k, j,
-						  j == 2
-						  ? (c->options [2]
-							 ? mxCreateDoubleMatrix (c->m173_c->n_samples_per_channel [k + 1], 1, mxREAL)
-							 : mxCreateString ("unused"))
-						  : j == 3
-						  ? (c->options [2]
-							 ? mxCreateDoubleMatrix (c->m173_c->n_samples_per_channel [k + 1], n_hitbased [k], mxREAL)
-							 : mxCreateString ("unused"))
-						  : j == 4
-						  ? mxCreateDoubleMatrix (c->m1_c->parametric_info->num_pids, n_hitbased [k], mxREAL)
-						  : c->m1_c->characteristics [j - 5] == 22
-						  ? mxCreateDoubleMatrix (*c->m1_c->partial_power_segs_p, n_hitbased [k], mxREAL)
-						  : mxCreateDoubleMatrix (1, n_hitbased [k], mxREAL)); }
+  for (unsigned int k = 0; k < n_channels; k++) {
+	if (n_hitbased [k] > 0) {
+	  for (unsigned int j = 0; j < c->m1_c->num_characteristics + 5; j++) {
+		mxSetFieldByNumber (hit_based_array, c->m173_c->channel_map [k + 1], j,
+							j == 2
+							? (c->options [2]
+							   ? mxCreateDoubleMatrix (c->m173_c->n_samples_per_channel [k + 1], 1, mxREAL)
+							   : mxCreateString ("unused"))
+							: j == 3
+							? (c->options [2]
+							   ? mxCreateDoubleMatrix (c->m173_c->n_samples_per_channel [k + 1], n_hitbased [k], mxREAL)
+							   : mxCreateString ("unused"))
+							: j == 4
+							? mxCreateDoubleMatrix (c->m1_c->parametric_info->num_pids, n_hitbased [k], mxREAL)
+							: (j >= 5 && c->m1_c->characteristics [j - 5] == 22)
+							? mxCreateDoubleMatrix (*c->m1_c->partial_power_segs_p, n_hitbased [k], mxREAL)
+							: mxCreateDoubleMatrix (1, n_hitbased [k], mxREAL));
+	  }
+	}
+  }
 
   c->m1_c->matlab_array_handle = hit_based_array;
   c->m173_c->matlab_array_handle = hit_based_array;
@@ -286,14 +306,16 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 
   if (c->options [2]) {
 	for (int i = 0; i < n_channels; i++) {
-	  double * d = mxGetPr (mxGetFieldByNumber (hit_based_array, i, 2));
-	  double xmin = c->m173_c->channel_tdly [i+1]
-		/ (1000.0 * c->m173_c->channel_srate [i+1]);
-	  double xmax = ((c->m173_c->channel_tdly [i+1] + c->m173_c->n_samples_per_channel [i+1]) - 1)
-		/ (1000.0 * c->m173_c->channel_srate [i+1]);
-	  int N = c->m173_c->n_samples_per_channel [i+1];
-	  for (int j = 0; j < N; j++)
-		d [j] = xmin + (double) j / (N - 1) * (xmax - xmin);
+	  if (n_hitbased [i] > 0) {
+		double * d = mxGetPr (mxGetFieldByNumber (hit_based_array, c->m173_c->channel_map [i+1], 2));
+		double xmin = c->m173_c->channel_tdly [i+1]
+		  / (1000.0 * c->m173_c->channel_srate [i+1]);
+		double xmax = ((c->m173_c->channel_tdly [i+1] + c->m173_c->n_samples_per_channel [i+1]) - 1)
+		  / (1000.0 * c->m173_c->channel_srate [i+1]);
+		int N = c->m173_c->n_samples_per_channel [i+1];
+		for (int j = 0; j < N; j++)
+		  d [j] = xmin + (double) j / (N - 1) * (xmax - xmin);
+	  }
 	}
   }
 
@@ -339,25 +361,25 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
   double TOT = tot_to_double (data, NULL);
   byte channel_id = *(byte *) data;
 
-  *(mxGetPr (mxGetFieldByNumber (a, channel_id - 1, 0/*"channel_id"*/)) + c->index [channel_id]) = channel_id;
-  *(mxGetPr (mxGetFieldByNumber (a, channel_id - 1, 1/*"tot"*/)) + c->index [channel_id]) = TOT;
+  *(mxGetPr (mxGetFieldByNumber (a, c->channel_map [channel_id], 0/*"channel_id"*/)) + c->index [channel_id]) = channel_id;
+  *(mxGetPr (mxGetFieldByNumber (a, c->channel_map [channel_id], 1/*"tot"*/)) + c->index [channel_id]) = TOT;
     
   data = ((byte *) data + 1);
   
   for (int i = 0; i < c->num_characteristics; i++) {
 	double value = chid_handlers_mx [c->characteristics [i]] (data, c->partial_power_segs_p);
 	if (c->characteristics [i] == 22) {
-	  double* d = mxGetPr (mxGetFieldByNumber (a, channel_id - 1, i + 5));
+	  double* d = mxGetPr (mxGetFieldByNumber (a, c->channel_map [channel_id], i + 5));
 	  // Yes, I am using a double as an array of bytes for the case of the partial powers
 	  byte* segs = (byte *) &value;
 	  long int offset = *c->partial_power_segs_p * c->index [channel_id];
 	  for (int j = 0; j < *c->partial_power_segs_p; j++) d [offset + j] = (double) segs [j];
 	} else {
-	  *(mxGetPr (mxGetFieldByNumber (a, channel_id - 1, i + 5)) + c->index [channel_id]) = value;
+	  *(mxGetPr (mxGetFieldByNumber (a, c->channel_map [channel_id], i + 5)) + c->index [channel_id]) = value;
 	}
   }
 
-  double * mxParametrics = (mxGetPr (mxGetField (a, channel_id-1, "parametrics"))
+  double * mxParametrics = (mxGetPr (mxGetField (a, c->channel_map [channel_id], "parametrics"))
 							+
 							c->parametric_info->num_pids * c->index [channel_id]);
   set_parametrics (data, c->parametric_info->pids,
@@ -412,7 +434,8 @@ void message173_handler_mx (void* data, int length, void* additional_data) {
   byte channel_id = *( (byte *) data + 7);
 
   long int offset = c->n_samples_per_channel [channel_id] * c->index [channel_id];
-  double * w = mxGetPr ( mxGetFieldByNumber (c->matlab_array_handle, channel_id-1, 3));
+  double * w = mxGetPr (mxGetFieldByNumber (c->matlab_array_handle,
+											c->channel_map [channel_id], 3));
   short * m_w = (short *) ((byte *) data + 9);
   double sc_fac = c->channel_mxin [channel_id] / c->channel_gain [channel_id] / 32768.0;
 

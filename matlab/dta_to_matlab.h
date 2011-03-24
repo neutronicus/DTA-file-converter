@@ -22,7 +22,8 @@ typedef struct m1_control_matlab_struct {
   unsigned short num_parametrics;
   m110_data* parametric_info;
   int* partial_power_segs_p;
-  int index [__AE_NUM_CHANNELS + 1];
+  unsigned int index [__AE_NUM_CHANNELS + 1];
+  unsigned short channel_map [__AE_NUM_CHANNELS + 1];
   mxArray * matlab_array_handle;
 } mx_m1_control;
 
@@ -39,6 +40,7 @@ typedef struct m2_control_matlab_struct {
 
 typedef struct m173_control_matlab_struct {
   unsigned short n_samples_per_channel [__AE_NUM_CHANNELS + 1];
+  unsigned short channel_map [__AE_NUM_CHANNELS + 1];
   unsigned short channel_srate [__AE_NUM_CHANNELS + 1];
   short channel_tdly [__AE_NUM_CHANNELS + 1]; // This is signed
   unsigned short channel_mxin [__AE_NUM_CHANNELS + 1];
