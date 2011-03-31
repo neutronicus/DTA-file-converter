@@ -45,6 +45,7 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   m128_c.m173_c = & m173_c;  m128_c.m211_c = & m211_c;
   m128_c.input_file_handle = dta_file;
   m128_c.options = options;
+  m2_c.parametrics = m2_c.characteristics = p_info.pids = NULL;
 
   m1_c.partial_power_segs_p = m2_c.partial_power_segs_p = &n_pp_segs;
 
@@ -78,9 +79,9 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
   parse_dta_file (mx_handlers, mx_ctx, dta_file);
 
   free (m1_c.characteristics);
-  free (m2_c.characteristics);
-  free (m2_c.parametrics);
-  free (p_info.pids);
+  if (m2_c.characteristics) free (m2_c.characteristics);
+  if (m2_c.parametrics) free (m2_c.parametrics);
+  if (p_info.pids) free (p_info.pids);
 
   if (options [0]) mexPutVariable (ws, var_names [0], m1_c.matlab_array_handle);
   if (options [1]) mexPutVariable (ws, var_names [1], m2_c.matlab_array_handle);

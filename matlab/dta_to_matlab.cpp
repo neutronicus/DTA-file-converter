@@ -226,7 +226,7 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
   // Map each non-empty channel ID to its location in the output array
   unsigned short cur_chan_index = 0;
   for (unsigned short i = 0; i < n_channels; i++)
-	if (n_hitbased [i] > 1)
+	if (n_hitbased [i] > 0)
 	  c->m173_c->channel_map [i + 1] = cur_chan_index++;
 
   memcpy (c->m1_c->channel_map , c->m173_c->channel_map,
