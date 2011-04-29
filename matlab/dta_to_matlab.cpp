@@ -179,6 +179,8 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 
   unsigned int n_channels = c->m2_c->n_channels;
 
+  memset (c->m173_c->num_data_points, 0, (__AE_NUM_CHANNELS + 1) * sizeof (unsigned int));
+
   unsigned int n_timebased, m2_length, n_marks;
   unsigned int * n_hitbased = (unsigned int *) mxCalloc (n_channels, sizeof (unsigned int));
   memset (n_hitbased, 0, n_channels * sizeof (unsigned int));
@@ -189,18 +191,24 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
   
   fread (&local_length, 2, 1, c->input_file_handle);
   fread (&id, 1, 1, c->input_file_handle);
+
+  bool seen_173 = false;
   while (! feof (c->input_file_handle) && local_length != 0 ) {
 
 	// Don't bother counting 173 - There's one for every 1
+	if (id == 173) seen_173 = true;
 	if (id == 1) {
-	  fpos_t m1_anchor;
-	  byte channel_id;
-	  fgetpos (c->input_file_handle, & m1_anchor);
-	  fseek (c->input_file_handle, 6, SEEK_CUR);
-	  fread (&channel_id, 1, 1, c->input_file_handle);
-	  fsetpos (c->input_file_handle, & m1_anchor);
+	  if (seen_173) {
+		fpos_t m1_anchor;
+		byte channel_id;
+		fgetpos (c->input_file_handle, & m1_anchor);
+		fseek (c->input_file_handle, 6, SEEK_CUR);
+		fread (&channel_id, 1, 1, c->input_file_handle);
+		fsetpos (c->input_file_handle, & m1_anchor);
 	  
-	  (n_hitbased [channel_id - 1])++;
+		(n_hitbased [channel_id - 1])++;
+		seen_173 = false;
+	  }
 	}
 	else if (id == 2) {
 	  n_timebased++;
@@ -210,13 +218,18 @@ void message128_handler_mx (void* data, int length, void* additional_data) {
 	  n_marks++;
 	}
 
-	if ((long int) local_length - 1 + ftell (c->input_file_handle) >= st.st_size) break;
+	if ((long int) local_length - 1 + ftell (c->input_file_handle) >= st.st_size) {
+	  break;
+	}
+	
 	fseek (c->input_file_handle, (long int) (local_length - 1), SEEK_CUR);
 	fread (&local_length, 2, 1, c->input_file_handle);
 	fread (&id, 1, 1, c->input_file_handle);
   }
 
   unsigned short non_empty_channels = 0;
+
+  memcpy (c->m173_c->num_data_points + 1, n_hitbased, n_channels * sizeof (unsigned int));
 
   for (unsigned short i = 0; i < n_channels; i++)
 	non_empty_channels += n_hitbased [i] > 0;
@@ -363,7 +376,11 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
 
   *(mxGetPr (mxGetFieldByNumber (a, c->channel_map [channel_id], 0/*"channel_id"*/)) + c->index [channel_id]) = channel_id;
   *(mxGetPr (mxGetFieldByNumber (a, c->channel_map [channel_id], 1/*"tot"*/)) + c->index [channel_id]) = TOT;
-    
+
+  if (TOT != *c->last_tot || ! *c->seen_173) {
+	return;
+  }
+  
   data = ((byte *) data + 1);
   
   for (int i = 0; i < c->num_characteristics; i++) {
@@ -385,7 +402,9 @@ void message1_handler_mx (void* data, int length, void* additional_data) {
   set_parametrics (data, c->parametric_info->pids,
 				   c->parametric_info->num_pids, mxParametrics);
 
-  c->index [channel_id] ++;}
+  c->index [channel_id] ++;
+  *c->seen_173 = false;
+}
 
 
 void message2_handler_mx (void* data, int length, void* additional_data) {
@@ -430,19 +449,30 @@ void message173_handler_mx (void* data, int length, void* additional_data) {
   } else if (*(byte *)data != 1) {
 	return;
   }
+
+  data = (byte *) data + 1;
+  double TOT = tot_to_double (data, NULL);
+
+  c->last_tot = TOT;
   
-  byte channel_id = *( (byte *) data + 7);
+  byte channel_id = *(byte *) data;
+
+  if (c->seen_173) {
+	c->index [channel_id]--;
+  }
 
   long int offset = c->n_samples_per_channel [channel_id] * c->index [channel_id];
   double * w = mxGetPr (mxGetFieldByNumber (c->matlab_array_handle,
 											c->channel_map [channel_id], 3));
-  short * m_w = (short *) ((byte *) data + 9);
+  short * m_w = (short *) ((byte *) data + 2);
   double sc_fac = c->channel_mxin [channel_id] / c->channel_gain [channel_id] / 32768.0;
 
-  for (int i = 0; i < c->n_samples_per_channel [channel_id]; i++)
-  	w [offset + i] = (double) m_w [i] * sc_fac;
-
-  c->index [channel_id]++;
+  if (c->index [channel_id] < c->num_data_points [channel_id]) {
+	for (int i = 0; i < c->n_samples_per_channel [channel_id]; i++)
+	  w [offset + i] = (double) m_w [i] * sc_fac;
+	c->index [channel_id]++;
+	c->seen_173 = true;
+  }
 }
 
 void message211_handler_mx (void* data, int length, void* additional_data) {

@@ -49,6 +49,11 @@ void mexFunction (int nlhs, mxArray * plhs [], int nrhs, const mxArray * prhs []
 
   m1_c.partial_power_segs_p = m2_c.partial_power_segs_p = &n_pp_segs;
 
+  m1_c.seen_173 = & m173_c.seen_173;
+  m173_c.seen_173 = false;
+  m1_c.last_tot = & m173_c.last_tot;
+  m173_c.last_tot = 0.0;
+
   m2_c.index = 0;
   m211_c.index = 0;
   memset (& m1_c.index [0], 0, (__AE_NUM_CHANNELS + 1) * sizeof (int));

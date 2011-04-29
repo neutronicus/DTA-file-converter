@@ -25,6 +25,8 @@ typedef struct m1_control_matlab_struct {
   unsigned int index [__AE_NUM_CHANNELS + 1];
   unsigned short channel_map [__AE_NUM_CHANNELS + 1];
   mxArray * matlab_array_handle;
+  bool * seen_173;
+  double * last_tot;
 } mx_m1_control;
 
 typedef struct m2_control_matlab_struct {
@@ -47,8 +49,11 @@ typedef struct m173_control_matlab_struct {
   unsigned short channel_gain [__AE_NUM_CHANNELS + 1];
   unsigned short channel_hdt [__AE_NUM_CHANNELS + 1];
   unsigned short channel_pdt [__AE_NUM_CHANNELS + 1];
+  unsigned int num_data_points [__AE_NUM_CHANNELS + 1];
   int index [__AE_NUM_CHANNELS + 1];
   mxArray * matlab_array_handle;
+  bool seen_173;
+  double last_tot;
 } mx_m173_control;
 
 typedef struct m211_control_matlab_struct {
